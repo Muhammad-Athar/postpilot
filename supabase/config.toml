@@ -1,0 +1,12 @@
+# Remote project settings pushed with `supabase config push`. Local-dev sections are omitted on purpose.
+project_id = "bffcigwxfksgjwcfyhdt"
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/**"]
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+double_confirm_changes = false
