@@ -3,10 +3,13 @@ project_id = "bffcigwxfksgjwcfyhdt"
 
 [auth]
 site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3000/**"]
+# Exact callback paths only; the production URL is appended once the app is deployed.
+additional_redirect_urls = ["http://localhost:3000/login", "http://localhost:3000/inbox"]
 enable_signup = true
 
 [auth.email]
 enable_signup = true
+# DEMO TRADE-OFF: confirmations are off so portfolio visitors can sign in instantly.
+# Re-enable before any real deployment; without it an account can be created on an address its owner does not control.
 enable_confirmations = false
-double_confirm_changes = false
+double_confirm_changes = true
