@@ -9,3 +9,5 @@ export function requireSecret(req: Request): NextResponse | undefined {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 }
+
+export const isUuid = (s: unknown): s is string => typeof s === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
