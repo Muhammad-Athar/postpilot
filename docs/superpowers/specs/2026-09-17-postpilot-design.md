@@ -53,17 +53,17 @@ Per-platform tiles: followers, reach, views, likes, comments, shares, saves. Cro
 
 ### Platforms (v1)
 Native adapters: Bluesky (AT Protocol), Mastodon, Meta (Instagram + Facebook Pages via Graph API test app).
-Via self-hosted Postiz adapter: TikTok, YouTube Shorts, LinkedIn, X, Threads, Pinterest.
+Via the Late (getlate.dev) aggregator adapter: TikTok, YouTube Shorts, LinkedIn, X, Threads, Pinterest. (Amended 2026-09-17: the Oracle VM is a 1 GB E2.1.Micro, too small to self-host Postiz next to n8n; Late's free tier gives 2 profiles with no infra.)
 UI lists all; README states which are native. File Meta, TikTok, YouTube app reviews on day 1.
 
 ## 3. Architecture
 
 Deployables
 1. Web app — Next.js 15 (App Router, TypeScript, Tailwind, shadcn/ui) on Vercel. All UI plus API routes that n8n calls back with a shared secret.
-2. Supabase (free) — Postgres, Auth (magic link), Storage (public bucket for uploads and renders; satisfies Instagram public-URL requirement), pgvector, Realtime.
+2. Supabase (free) — Postgres, Auth (email + password; simplest for demo and client trials), Storage (public bucket for uploads and renders; satisfies Instagram public-URL requirement), pgvector, Realtime.
 3. n8n on Oracle VM (existing, https://n8n.152-67-183-135.sslip.io) — workflows: `generate`, `render`, `publish`, `analytics-sync`, each webhook-triggered, each with an error branch that reports `{job_id, stage, error}` back to the app.
-4. Render worker — Node service on the VM (localhost only, called by n8n): Remotion composition + ffmpeg encode. Providers: Gemini TTS / Edge-TTS (voice), Groq Whisper (word timings), Pexels + Pixabay (stock video/images/music), Kling (optional b-roll), Gemini vision (thumbnail pick).
-5. Postiz — self-hosted via Docker on the VM; used through its API as one adapter.
+4. Render worker — Node service on the VM (localhost only, called by n8n): ffmpeg composition with ASS karaoke subtitles (amended 2026-09-17: Remotion needs headless Chromium, not viable on a 1 GB VM). Providers: Gemini TTS / Edge-TTS (voice), Groq Whisper (word timings), Pexels + Pixabay (stock video/images/music), Kling (optional b-roll), Gemini vision (thumbnail pick).
+5. Late — hosted aggregator (free tier, 2 profiles) used through its API as one adapter.
 
 App modules (one folder each, one responsibility)
 - `brand` — kit CRUD, sample posts, voice_profile builder.
@@ -71,7 +71,7 @@ App modules (one folder each, one responsibility)
 - `drafts` — inbox, previews, edit/approve/reject/regenerate, emits feedback events.
 - `preferences` — stores feedback events + embeddings, builds taste context, maintains preference_summary.
 - `schedule` — cadence rules, slot allocation, calendar, queue.
-- `publishers` — `Publisher` interface: `publish(post) → {externalId, url}`, `fetchMetrics(ref) → metrics`, `healthcheck()`. Implementations: bluesky, mastodon, meta, postiz.
+- `publishers` — `Publisher` interface: `publish(post) → {externalId, url}`, `fetchMetrics(ref) → metrics`, `healthcheck()`. Implementations: bluesky, mastodon, meta, late.
 - `analytics` — snapshots, aggregations, insight generation.
 - `approvals` — token issue/verify, email and Telegram senders.
 
@@ -79,7 +79,7 @@ App modules (one folder each, one responsibility)
 
 - workspaces(id, name, mode, timezone, cadence_rule, posting_windows JSON)
 - brands(id, workspace_id, name, kit JSON, voice_profile TEXT, banned_words TEXT[])
-- connected_accounts(id, brand_id, platform, adapter ∈ native|postiz, external_id, tokens_encrypted, status ∈ ok|reconnect|error)
+- connected_accounts(id, brand_id, platform, adapter ∈ native|late, external_id, tokens_encrypted, status ∈ ok|reconnect|error)
 - campaigns(id, brand_id, prompt, references JSON, settings JSON, status ∈ queued|generating|review|done|failed)
 - drafts(id, campaign_id, brand_id, platform, candidate_index, version, parent_draft_id, hook, caption, hashtags TEXT[], first_comment, alt_text, media_plan JSON, media_urls TEXT[], change_notes TEXT[], status ∈ draft|approved|rejected|scheduled|published|failed, embedding VECTOR(768))
 - feedback_events(id, brand_id, draft_id, action ∈ approve|edit|reject|regenerate, note, edit_diff JSON, embedding VECTOR(768))
@@ -110,7 +110,7 @@ Feedback events → prompt context:
 
 ## 6. Video pipeline (n8n `render` → render worker)
 
-Script scenes → TTS per scene → Whisper word timings → per scene media: user media if provided, else stock by scene keywords, else Kling clip if allow_ai_broll and quota remains → Remotion composition 1080×1920: platform safe zones, word-highlight subtitles, brand colours/logo, music ducked under voice → ffmpeg H.264/AAC → upload to Storage → Gemini vision picks thumbnail frame → render_jobs updated → draft media_urls set. Target < 60 s per render; inbox shows progress.
+Script scenes → TTS per scene → Whisper word timings → per scene media: user media if provided, else stock by scene keywords, else Kling clip if allow_ai_broll and quota remains → ffmpeg composition 1080×1920: platform safe zones, word-highlight subtitles, brand colours/logo, music ducked under voice → ffmpeg H.264/AAC → upload to Storage → Gemini vision picks thumbnail frame → render_jobs updated → draft media_urls set. Target < 60 s per render; inbox shows progress.
 
 ## 7. Publishing and analytics
 
@@ -138,4 +138,4 @@ Script scenes → TTS per scene → Whisper word timings → per scene media: us
 
 Package: Vercel live URL · public GitHub repo under Muhammad-Athar (MIT, product-style README) · 6–9 captioned screenshots · 60–90 s voice-over video + .srt · one metric line · BD PDF · in-app landing page. No personal names.
 
-Timeline (10–12 working days): D1–2 schema, brand kit, campaign form, n8n generate · D3–4 inbox, feedback loop, preference memory · D5–7 render worker + video pipeline · D8–9 adapters, Postiz, scheduling, publish · D10 analytics + insights · D11–12 polish, tests, assets. App reviews (Meta, TikTok, YouTube) filed D1.
+Timeline (10–12 working days): D1–2 schema, brand kit, campaign form, n8n generate · D3–4 inbox, feedback loop, preference memory · D5–7 render worker + video pipeline · D8–9 adapters, Late, scheduling, publish · D10 analytics + insights · D11–12 polish, tests, assets. App reviews (Meta, TikTok, YouTube) filed D1.
