@@ -1,5 +1,6 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+import { Agent, fetch as undiciFetch } from "undici";
 
 /** RFC1918, loopback, link-local, CGNAT, unspecified, and IPv6 equivalents (incl. IPv4-mapped). */
 export function isPrivateAddress(ip: string): boolean {
@@ -15,8 +16,8 @@ export function isPrivateAddress(ip: string): boolean {
 type Resolver = (host: string) => Promise<string[]>;
 const defaultResolver: Resolver = async (host) => (await lookup(host, { all: true })).map((r) => r.address);
 
-/** Throws unless `url` is http(s), has no credentials, and every resolved address is public. */
-export async function assertPublicHttpUrl(url: string, resolve: Resolver = defaultResolver): Promise<void> {
+/** Throws unless `url` is http(s), has no credentials, and every resolved address is public. Returns the validated addresses. */
+export async function assertPublicHttpUrl(url: string, resolve: Resolver = defaultResolver): Promise<string[]> {
   let u: URL;
   try { u = new URL(url); } catch { throw new Error("Invalid URL"); }
   if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error("Only http(s) URLs are allowed");
@@ -26,6 +27,17 @@ export async function assertPublicHttpUrl(url: string, resolve: Resolver = defau
   const addrs = isIP(host) ? [host] : await resolve(host);
   if (!addrs.length) throw new Error("Host could not be resolved");
   if (addrs.some(isPrivateAddress)) throw new Error("Host resolves to a private address");
+  return addrs;
+}
+
+/** An agent that connects only to a pre-validated address, defeating DNS rebinding between check and use. */
+function pinnedAgent(address: string, timeoutMs: number) {
+  return new Agent({
+    connect: {
+      timeout: timeoutMs,
+      lookup: (_host, _opts, cb) => cb(null, [{ address, family: isIP(address) === 6 ? 6 : 4 }]),
+    },
+  });
 }
 
 /** True only for public object URLs inside this project's `media` bucket. */
@@ -44,8 +56,9 @@ export async function safeFetch(url: string, opts: { maxBytes?: number; timeoutM
   const { maxBytes = 15 * 1024 * 1024, timeoutMs = 10_000, maxRedirects = 3 } = opts;
   let current = url;
   for (let hop = 0; hop <= maxRedirects; hop++) {
-    await assertPublicHttpUrl(current);
-    const res = await fetch(current, { redirect: "manual", signal: AbortSignal.timeout(timeoutMs), headers: { "user-agent": "PostpilotBot/1.0" } });
+    const [address] = await assertPublicHttpUrl(current);
+    const dispatcher = pinnedAgent(address, timeoutMs);
+    const res = await undiciFetch(current, { dispatcher, redirect: "manual", signal: AbortSignal.timeout(timeoutMs), headers: { "user-agent": "PostpilotBot/1.0" } });
     if ([301, 302, 303, 307, 308].includes(res.status)) {
       const loc = res.headers.get("location");
       if (!loc) throw new Error("Redirect without location");
