@@ -147,7 +147,7 @@ create table schedule_slots (
   status text not null default 'open',
   created_at timestamptz not null default now(),
   foreign key (brand_id, workspace_id) references brands(id, workspace_id) on delete cascade,
-  foreign key (draft_id, workspace_id) references drafts(id, workspace_id) on delete set null
+  foreign key (draft_id, workspace_id) references drafts(id, workspace_id) on delete set null (draft_id)
 );
 
 create table publish_jobs (
@@ -174,7 +174,7 @@ create table metric_snapshots (
   captured_at timestamptz not null default now(),
   metrics jsonb not null default '{}',
   foreign key (account_id, workspace_id) references connected_accounts(id, workspace_id) on delete cascade,
-  foreign key (draft_id, workspace_id) references drafts(id, workspace_id) on delete set null
+  foreign key (draft_id, workspace_id) references drafts(id, workspace_id) on delete set null (draft_id)
 );
 
 create table approval_tokens (
