@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { isPrivateAddress, assertPublicHttpUrl, isOwnStorageUrl } from "@/lib/net/safe-fetch";
 
 describe("isPrivateAddress", () => {
-  it.each(["127.0.0.1", "10.1.2.3", "172.16.0.9", "172.31.255.255", "192.168.1.1", "169.254.169.254", "0.0.0.0", "::1", "fc00::1", "fe80::1", "::ffff:127.0.0.1", "::ffff:10.0.0.1"])("%s is private", (ip) => expect(isPrivateAddress(ip)).toBe(true));
+  it.each(["127.0.0.1", "10.1.2.3", "172.16.0.9", "172.31.255.255", "192.168.1.1", "169.254.169.254", "0.0.0.0", "::1", "fc00::1", "fe80::1", "::ffff:127.0.0.1", "::ffff:10.0.0.1", "::ffff:7f00:1", "64:ff9b::a00:1", "224.0.0.1", "198.18.0.1", "192.0.2.1", "ff02::1", "2001:db8::1", "not-an-ip"])("%s is private", (ip) => expect(isPrivateAddress(ip)).toBe(true));
   it.each(["8.8.8.8", "172.32.0.1", "1.1.1.1", "2606:4700::1111"])("%s is public", (ip) => expect(isPrivateAddress(ip)).toBe(false));
 });
 
