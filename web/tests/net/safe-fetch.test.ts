@@ -9,7 +9,7 @@ describe("isPrivateAddress", () => {
 describe("assertPublicHttpUrl", () => {
   const resolve = async (host: string) => (host === "evil.test" ? ["10.0.0.5"] : host === "ok.test" ? ["93.184.216.34"] : []);
   it("accepts a public https host", async () => {
-    await expect(assertPublicHttpUrl("https://ok.test/page", resolve)).resolves.toBeUndefined();
+    await expect(assertPublicHttpUrl("https://ok.test/page", resolve)).resolves.toEqual(["93.184.216.34"]);
   });
   it("rejects non-http schemes, credentials, private IPs, hosts resolving privately and unresolvable hosts", async () => {
     await expect(assertPublicHttpUrl("file:///etc/passwd", resolve)).rejects.toThrow();
