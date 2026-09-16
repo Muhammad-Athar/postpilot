@@ -1,9 +1,12 @@
 import type { Reference } from "@/lib/campaigns/create";
+import { safeFetch } from "@/lib/net/safe-fetch";
 
 type Ai = { describeMedia: (url: string) => Promise<string>; summariseText: (t: string) => Promise<string> };
 
+/** Fetches a public page through the SSRF guard (2 MB cap) and strips it to text. */
 export async function fetchPageText(url: string): Promise<string> {
-  const html = await (await fetch(url, { headers: { "user-agent": "PostpilotBot/1.0" } })).text();
+  const { bytes } = await safeFetch(url, { maxBytes: 2 * 1024 * 1024 });
+  const html = bytes.toString("utf8");
   return html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
