@@ -80,17 +80,15 @@
     },
     {
       "id": "n-split",
-      "name": "Split Out",
-      "type": "n8n-nodes-base.splitOut",
-      "typeVersion": 1,
+      "name": "Split bundles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         720,
         0
       ],
       "parameters": {
-        "fieldToSplitOut": "bundles",
-        "include": "allOtherFields",
-        "options": {}
+        "jsCode": "const b = $input.first().json;\nif (!Array.isArray(b.bundles) || !b.bundles.length) throw new Error('Bundle response had no prompts');\nreturn b.bundles.map((x) => ({ json: { campaignId: b.campaignId, model: b.model, responseSchema: b.responseSchema, platform: x.platform, candidateIndex: x.candidateIndex, system: x.system, user: x.user } }));"
       }
     },
     {
@@ -140,7 +138,7 @@
         0
       ],
       "parameters": {
-        "jsCode": "const bundles = $('Split Out').all();\nreturn $input.all().map((it, i) => {\n  const src = bundles[i].json;\n  const text = it.json.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';\n  return { json: { campaignId: src.campaignId, platform: src.platform, candidateIndex: src.candidateIndex, output: JSON.parse(text) } };\n});"
+        "jsCode": "const bundles = $('Split bundles').all();\nreturn $input.all().map((it, i) => {\n  const src = bundles[i].json;\n  const text = it.json.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';\n  return { json: { campaignId: src.campaignId, platform: src.platform, candidateIndex: src.candidateIndex, output: JSON.parse(text) } };\n});"
       }
     },
     {
@@ -211,18 +209,7 @@
       "main": [
         [
           {
-            "node": "Split Out",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Split Out": {
-      "main": [
-        [
-          {
-            "node": "Gemini",
+            "node": "Split bundles",
             "type": "main",
             "index": 0
           }
@@ -245,6 +232,17 @@
         [
           {
             "node": "Post draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split bundles": {
+      "main": [
+        [
+          {
+            "node": "Gemini",
             "type": "main",
             "index": 0
           }
