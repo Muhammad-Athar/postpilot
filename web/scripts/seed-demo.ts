@@ -1,0 +1,20 @@
+/* Dev helper: wipe campaigns for the first brand and seed one campaign with realistic candidates via the drafts API. */
+import { createClient } from "@supabase/supabase-js";
+const a = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
+const base = process.env.APP_BASE_URL ?? "http://localhost:3000";
+const outputs = [
+  ["bluesky", 0, { hook: "Monday, but make it Ethiopian.", caption: "Monday, but make it Ethiopian. First box ships free, beans roasted 48h before they leave, cancel whenever. Your desk deserves better.", hashtags: ["#coffee"], firstComment: null, altText: "A matte bag of coffee beside a laptop on a wooden desk", mediaPlan: { kind: "generate_image", prompt: "Overhead shot of a matte coffee bag next to a laptop on a warm wooden desk, morning light" }, changeNotes: [] }],
+  ["bluesky", 1, { hook: "We roast 48 hours before we ship.", caption: "We roast 48 hours before we ship. Most supermarket coffee is months old by the time it hits your grinder. That is the whole pitch.", hashtags: ["#specialtycoffee"], firstComment: null, altText: "Close-up of freshly roasted beans cooling on a tray", mediaPlan: { kind: "none" }, changeNotes: [] }],
+  ["instagram", 0, { hook: "Your kitchen is about to smell better than the café you pretend to work from.", caption: "Your kitchen is about to smell better than the café you pretend to work from.\n\nMonthly specialty coffee, roasted 48 hours before it ships. First box on us. Cancel any time, no guilt trips.", hashtags: ["#specialtycoffee", "#wfh", "#morningritual", "#coffeesubscription", "#freshlyroasted"], firstComment: "#specialtycoffee #wfh #morningritual #coffeesubscription #freshlyroasted", altText: "A pour-over brewing beside an open laptop in soft window light", mediaPlan: { kind: "video", scenes: [{ onScreenText: "Roasted 48h ago", voiceover: "This was roasted forty-eight hours ago.", visual: "beans pouring from roaster drum" }, { onScreenText: "First box free", voiceover: "Your first box ships free.", visual: "hands opening a box on a desk" }, { onScreenText: "Cancel anytime", voiceover: "Cancel whenever you like.", visual: "phone tapping cancel, smiling" }] }, changeNotes: [] }],
+  ["instagram", 1, { hook: "POV: it's 9am and your coffee is better than the meeting.", caption: "POV: it's 9am and your coffee is better than the meeting.\n\nSmall-lot beans, roasted to order, delivered monthly. First box free.", hashtags: ["#coffeelover", "#remotework", "#beanpost"], firstComment: "#coffeelover #remotework #beanpost", altText: "Steam rising from a ceramic mug next to a notebook", mediaPlan: { kind: "carousel", slides: [{ title: "9am", body: "Meeting starts." }, { title: "9:01", body: "Coffee wins." }, { title: "First box free", body: "Roasted 48h before shipping." }] }, changeNotes: [] }],
+] as const;
+(async () => {
+  const { data: b } = await a.from("brands").select("id, workspace_id").order("created_at").limit(1).single();
+  const { count } = await a.from("campaigns").delete({ count: "exact" }).eq("brand_id", b!.id);
+  console.log("deleted campaigns:", count);
+  const { data: c } = await a.from("campaigns").insert({ workspace_id: b!.workspace_id, brand_id: b!.id, prompt: "Launch of our monthly coffee subscription: first box ships free, beans roasted 48h before shipping, cancel anytime.", references: [], settings: { platforms: ["bluesky", "instagram"], candidatesPerSlot: 2, postsCount: 2, videosCount: 1, hashtagCount: 5, tone: "warm, witty", language: "en", videoLength: "30", voice: "Kore", allowAiBroll: false }, status: "generating" }).select("id").single();
+  for (const [platform, candidateIndex, output] of outputs) {
+    const r = await fetch(`${base}/api/campaigns/${c!.id}/drafts`, { method: "POST", headers: { "content-type": "application/json", "x-postpilot-secret": process.env.APP_SECRET! }, body: JSON.stringify({ platform, candidateIndex, output }) });
+    console.log(platform, candidateIndex, r.status, (await r.json()).received);
+  }
+})();

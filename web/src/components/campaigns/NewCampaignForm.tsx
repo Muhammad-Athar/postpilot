@@ -63,7 +63,7 @@ export function NewCampaignForm({ workspaceId, defaults }: Props) {
   return (
     <form onSubmit={submit} className="max-w-6xl">
       <PageTitle sub="One brief in, platform-native candidates out. Settings here override your workspace defaults.">New campaign</PageTitle>
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div className="grid items-start gap-6 lg:grid-cols-[1fr_360px]">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5 rounded-[var(--radius)] border border-line bg-elev p-6 shadow-card">
           <Field label="What should we post about?">
             <Textarea required rows={6} value={prompt} onChange={(e) => setPrompt(e.target.value)} className="font-serif text-lg leading-relaxed" placeholder="Launch of our monthly coffee subscription: first box ships free, beans roasted 48h before shipping, cancel anytime." />
