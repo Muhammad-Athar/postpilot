@@ -102,7 +102,7 @@
       ],
       "retryOnFail": true,
       "maxTries": 3,
-      "waitBetweenTries": 4000,
+      "waitBetweenTries": 30000,
       "parameters": {
         "method": "POST",
         "url": "=https://generativelanguage.googleapis.com/v1beta/models/{{ $json.model }}:generateContent",
@@ -115,8 +115,8 @@
           "timeout": 90000,
           "batching": {
             "batch": {
-              "batchSize": 2,
-              "batchInterval": 1500
+              "batchSize": 1,
+              "batchInterval": 6500
             }
           }
         }
