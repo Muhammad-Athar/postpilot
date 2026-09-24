@@ -1,13 +1,16 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { PLATFORMS, PLATFORM_RULES, type Platform } from "@/lib/platforms/rules";
 import type { CampaignSettings } from "@/lib/campaigns/settings";
 import type { Reference } from "@/lib/campaigns/create";
+import { Button } from "@/components/ui/Button";
+import { Field, Input, Select, Textarea, Label } from "@/components/ui/Field";
+import { PageTitle } from "@/components/ui/Heading";
 
 type Props = { workspaceId: string; defaults: Partial<CampaignSettings> };
-const input = "mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm";
 
 export function NewCampaignForm({ workspaceId, defaults }: Props) {
   const router = useRouter();
@@ -55,62 +58,67 @@ export function NewCampaignForm({ workspaceId, defaults }: Props) {
 
   const native = PLATFORMS.filter((p) => PLATFORM_RULES[p].adapter === "native");
   const viaLate = PLATFORMS.filter((p) => PLATFORM_RULES[p].adapter === "late");
+  const count = (s.platforms?.length ?? 0) * (s.candidatesPerSlot ?? 2);
 
   return (
-    <form onSubmit={submit} className="grid gap-6 lg:grid-cols-[1fr_340px] max-w-5xl">
-      <div className="space-y-4 rounded-2xl bg-white p-6 border border-neutral-200">
-        <h1 className="text-2xl font-semibold tracking-tight">New campaign</h1>
-        <label className="block text-sm">What should we post about?
-          <textarea required rows={5} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Launch of our monthly coffee subscription: first box ships free, beans roasted 48h before shipping, cancel anytime." className={input} />
-        </label>
-        <label className="block text-sm">Reference images or a video (optional)
-          <input type="file" multiple accept="image/*,video/mp4,video/quicktime" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} className="mt-1 block text-sm" />
-          {files.length > 0 && <div className="mt-1 text-xs text-neutral-500">{files.map((f) => f.name).join(", ")}</div>}
-        </label>
-        <label className="block text-sm">Reference links (optional, one per line)
-          <textarea rows={2} value={urls} onChange={(e) => setUrls(e.target.value)} placeholder="https://…" className={input} />
-        </label>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button disabled={!!busy} className="rounded-lg bg-neutral-900 text-white px-4 py-2 text-sm disabled:opacity-50">{busy ?? "Generate drafts"}</button>
-      </div>
+    <form onSubmit={submit} className="max-w-6xl">
+      <PageTitle sub="One brief in, platform-native candidates out. Settings here override your workspace defaults.">New campaign</PageTitle>
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5 rounded-[var(--radius)] border border-line bg-elev p-6 shadow-card">
+          <Field label="What should we post about?">
+            <Textarea required rows={6} value={prompt} onChange={(e) => setPrompt(e.target.value)} className="font-serif text-lg leading-relaxed" placeholder="Launch of our monthly coffee subscription: first box ships free, beans roasted 48h before shipping, cancel anytime." />
+          </Field>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <label className="block">
+              <Label hint="optional">Reference images or a video</Label>
+              <div className="mt-1.5 rounded-xl border border-dashed border-line-strong bg-bg px-4 py-6 text-center text-sm text-fg-muted transition-colors hover:border-accent hover:bg-accent-soft/30">
+                <input type="file" multiple accept="image/*,video/mp4,video/quicktime" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} className="block w-full text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-fg file:px-3 file:py-1.5 file:text-xs file:text-bg" />
+                {files.length > 0 ? <div className="mt-2 text-xs text-fg">{files.map((f) => f.name).join(", ")}</div> : <div className="mt-2 text-xs text-fg-subtle">Your own media is used first, stock second.</div>}
+              </div>
+            </label>
+            <Field label="Reference links" hint="one per line"><Textarea rows={5} value={urls} onChange={(e) => setUrls(e.target.value)} placeholder="https://…" /></Field>
+          </div>
+          {error && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</motion.p>}
+          <div className="flex flex-wrap items-center gap-4">
+            <Button type="submit" variant="accent" size="lg" loading={!!busy} disabled={!prompt.trim() || !(s.platforms?.length)}>{busy ?? `Generate ${count} candidates`}</Button>
+            <span className="text-sm text-fg-subtle">{s.platforms?.length ?? 0} platforms × {s.candidatesPerSlot ?? 2} candidates</span>
+          </div>
+        </motion.div>
 
-      <aside className="space-y-4 rounded-2xl bg-white p-6 border border-neutral-200 h-fit">
-        <div className="text-sm font-medium">Settings for this request</div>
-        <fieldset className="text-sm">
-          <legend className="text-xs uppercase tracking-wide text-neutral-500">Platforms · native</legend>
-          <div className="mt-1 flex flex-wrap gap-2">{native.map((p) => <Chip key={p} label={PLATFORM_RULES[p].label} on={!!s.platforms?.includes(p)} onClick={() => togglePlatform(p)} />)}</div>
-          <legend className="mt-3 text-xs uppercase tracking-wide text-neutral-500">Platforms · via Late</legend>
-          <div className="mt-1 flex flex-wrap gap-2">{viaLate.map((p) => <Chip key={p} label={PLATFORM_RULES[p].label} on={!!s.platforms?.includes(p)} onClick={() => togglePlatform(p)} />)}</div>
-        </fieldset>
-        <div className="grid grid-cols-2 gap-3">
-          <Num label="Posts" v={s.postsCount ?? 3} min={1} max={10} set={(n) => setS({ ...s, postsCount: n })} />
-          <Num label="Videos" v={s.videosCount ?? 1} min={0} max={5} set={(n) => setS({ ...s, videosCount: n })} />
-          <Num label="Hashtags" v={s.hashtagCount ?? 5} min={0} max={30} set={(n) => setS({ ...s, hashtagCount: n })} />
-          <label className="block text-sm">Candidates / slot
-            <select value={s.candidatesPerSlot ?? 2} onChange={(e) => setS({ ...s, candidatesPerSlot: Number(e.target.value) as 2 | 3 })} className={input}><option value={2}>2</option><option value={3}>3</option></select>
-          </label>
-          <label className="block text-sm">Video length
-            <select value={s.videoLength ?? "30"} onChange={(e) => setS({ ...s, videoLength: e.target.value as "15" | "30" | "60" })} className={input}><option value="15">15s</option><option value="30">30s</option><option value="60">60s</option></select>
-          </label>
-          <label className="block text-sm">Voice
-            <select value={s.voice ?? "Kore"} onChange={(e) => setS({ ...s, voice: e.target.value })} className={input}>{["Kore", "Puck", "Charon", "Aoede", "Fenrir"].map((v) => <option key={v}>{v}</option>)}</select>
-          </label>
-        </div>
-        <label className="block text-sm">Tone<input value={s.tone ?? ""} onChange={(e) => setS({ ...s, tone: e.target.value })} className={input} /></label>
-        <div className="grid grid-cols-2 gap-3">
-          <label className="block text-sm">Language<input value={s.language ?? "en"} onChange={(e) => setS({ ...s, language: e.target.value })} className={input} /></label>
-          <label className="block text-sm">CTA<input value={s.cta ?? ""} onChange={(e) => setS({ ...s, cta: e.target.value || undefined })} className={input} placeholder="Start your first box" /></label>
-        </div>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!s.allowAiBroll} onChange={(e) => setS({ ...s, allowAiBroll: e.target.checked })} />Allow AI-generated b-roll (uses daily quota)</label>
-        <label className="flex items-center gap-2 text-sm text-neutral-600"><input type="checkbox" checked={saveDefaults} onChange={(e) => setSaveDefaults(e.target.checked)} />Save these as workspace defaults</label>
-      </aside>
+        <motion.aside initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="h-fit space-y-5 rounded-[var(--radius)] border border-line bg-elev p-6 shadow-card">
+          <div className="font-serif text-xl">Settings for this request</div>
+          <div>
+            <Label>Platforms · native</Label>
+            <div className="mt-2 flex flex-wrap gap-2">{native.map((p) => <Chip key={p} label={PLATFORM_RULES[p].label} on={!!s.platforms?.includes(p)} onClick={() => togglePlatform(p)} />)}</div>
+            <Label className="mt-4">Platforms · via Late</Label>
+            <div className="mt-2 flex flex-wrap gap-2">{viaLate.map((p) => <Chip key={p} label={PLATFORM_RULES[p].label} on={!!s.platforms?.includes(p)} onClick={() => togglePlatform(p)} />)}</div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Posts"><Input type="number" min={1} max={10} value={s.postsCount ?? 3} onChange={(e) => setS({ ...s, postsCount: Number(e.target.value) })} /></Field>
+            <Field label="Videos"><Input type="number" min={0} max={5} value={s.videosCount ?? 1} onChange={(e) => setS({ ...s, videosCount: Number(e.target.value) })} /></Field>
+            <Field label="Hashtags"><Input type="number" min={0} max={30} value={s.hashtagCount ?? 5} onChange={(e) => setS({ ...s, hashtagCount: Number(e.target.value) })} /></Field>
+            <Field label="Candidates / slot"><Select value={s.candidatesPerSlot ?? 2} onChange={(e) => setS({ ...s, candidatesPerSlot: Number(e.target.value) as 2 | 3 })}><option value={2}>2</option><option value={3}>3</option></Select></Field>
+            <Field label="Video length"><Select value={s.videoLength ?? "30"} onChange={(e) => setS({ ...s, videoLength: e.target.value as "15" | "30" | "60" })}><option value="15">15s</option><option value="30">30s</option><option value="60">60s</option></Select></Field>
+            <Field label="Voice"><Select value={s.voice ?? "Kore"} onChange={(e) => setS({ ...s, voice: e.target.value })}>{["Kore", "Puck", "Charon", "Aoede", "Fenrir"].map((v) => <option key={v}>{v}</option>)}</Select></Field>
+          </div>
+          <Field label="Tone"><Input value={s.tone ?? ""} onChange={(e) => setS({ ...s, tone: e.target.value })} /></Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Language"><Input value={s.language ?? "en"} onChange={(e) => setS({ ...s, language: e.target.value })} /></Field>
+            <Field label="CTA" hint="optional"><Input value={s.cta ?? ""} onChange={(e) => setS({ ...s, cta: e.target.value || undefined })} placeholder="Start your first box" /></Field>
+          </div>
+          <label className="flex cursor-pointer items-center gap-2 text-sm"><input type="checkbox" className="accent-[var(--accent)]" checked={!!s.allowAiBroll} onChange={(e) => setS({ ...s, allowAiBroll: e.target.checked })} />Allow AI-generated b-roll <span className="text-fg-subtle">(uses daily quota)</span></label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-fg-muted"><input type="checkbox" className="accent-[var(--accent)]" checked={saveDefaults} onChange={(e) => setSaveDefaults(e.target.checked)} />Save these as workspace defaults</label>
+        </motion.aside>
+      </div>
     </form>
   );
 }
 
 function Chip({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
-  return <button type="button" onClick={onClick} className={`rounded-full border px-3 py-1 text-xs ${on ? "bg-neutral-900 text-white border-neutral-900" : "border-neutral-300 text-neutral-700 hover:bg-neutral-50"}`}>{label}</button>;
-}
-function Num({ label, v, min, max, set }: { label: string; v: number; min: number; max: number; set: (n: number) => void }) {
-  return <label className="block text-sm">{label}<input type="number" min={min} max={max} value={v} onChange={(e) => set(Number(e.target.value))} className={input} /></label>;
+  return (
+    <motion.button type="button" whileTap={{ scale: 0.95 }} onClick={onClick} aria-pressed={on}
+      className={`rounded-full border px-3 py-1 text-xs transition-colors duration-200 ${on ? "border-fg bg-fg text-bg" : "border-line text-fg-muted hover:border-line-strong hover:text-fg"}`}>
+      {label}
+    </motion.button>
+  );
 }

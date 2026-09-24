@@ -1,0 +1,15 @@
+import type { ReactNode } from "react";
+export function Display({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <h1 className={`font-serif text-4xl leading-[1.05] tracking-[-0.01em] text-fg sm:text-5xl ${className}`}>{children}</h1>;
+}
+export function PageTitle({ children, sub }: { children: ReactNode; sub?: ReactNode }) {
+  return (
+    <div className="mb-6">
+      <h1 className="font-serif text-3xl tracking-[-0.01em] text-fg">{children}</h1>
+      {sub && <p className="mt-1 text-sm text-fg-muted">{sub}</p>}
+    </div>
+  );
+}
+export function Eyebrow({ children }: { children: ReactNode }) {
+  return <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-accent">{children}</p>;
+}

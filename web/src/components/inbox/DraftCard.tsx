@@ -1,9 +1,11 @@
 "use client";
 import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { PlatformPreview } from "./PlatformPreview";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Field, Input, Textarea } from "@/components/ui/Field";
 import type { DraftRow, DraftAction } from "@/lib/drafts/types";
-
-const input = "mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm";
 
 export function DraftCard({ draft, referenceImage, onAction }: { draft: DraftRow; referenceImage?: string; onAction: (id: string, action: DraftAction, payload?: { note?: string; edits?: Record<string, unknown> }) => Promise<void> }) {
   const [mode, setMode] = useState<"view" | "edit" | "reject">("view");
@@ -19,59 +21,74 @@ export function DraftCard({ draft, referenceImage, onAction }: { draft: DraftRow
     finally { setBusy(null); }
   }
 
-  const disabled = busy !== null || draft.status !== "draft";
+  const locked = busy !== null || draft.status !== "draft";
+  const tone = draft.status === "approved" ? "ok" : draft.status === "rejected" ? "neutral" : "warn";
   return (
-    <div className={`grid gap-4 rounded-2xl border bg-white p-4 md:grid-cols-[280px_1fr] ${draft.status === "approved" ? "border-emerald-300" : draft.status === "rejected" ? "border-neutral-200 opacity-60" : "border-neutral-200"}`}>
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: draft.status === "rejected" ? 0.55 : 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.98 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      className={`grid gap-5 rounded-[var(--radius)] border bg-elev p-4 shadow-card md:grid-cols-[270px_1fr] ${draft.status === "approved" ? "border-ok/50" : "border-line"}`}
+    >
       <PlatformPreview draft={draft} referenceImage={referenceImage} />
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2 text-xs">
-          <span className="rounded-full bg-neutral-100 px-2 py-0.5">Candidate {draft.candidate_index + 1}</span>
-          <span className="rounded-full bg-neutral-100 px-2 py-0.5">v{draft.version}{draft.parent_draft_id ? " ↺" : ""}</span>
-          <span className={`rounded-full px-2 py-0.5 ${draft.status === "approved" ? "bg-emerald-100 text-emerald-800" : draft.status === "rejected" ? "bg-neutral-200" : "bg-amber-100 text-amber-800"}`}>{draft.status}</span>
+      <div className="flex min-w-0 flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge>Candidate {draft.candidate_index + 1}</Badge>
+          <Badge tone={draft.parent_draft_id ? "accent" : "neutral"}>v{draft.version}{draft.parent_draft_id ? " · regenerated" : ""}</Badge>
+          <Badge tone={tone}>{draft.status}</Badge>
         </div>
-        {draft.change_notes.length > 0 && (
-          <div className="rounded-lg bg-violet-50 p-3 text-sm">
-            <div className="text-xs font-medium uppercase tracking-wide text-violet-700">What changed</div>
-            <ul className="mt-1 list-disc pl-4 text-violet-900">{draft.change_notes.map((c, i) => <li key={i}>{c}</li>)}</ul>
-          </div>
-        )}
-        {mode === "edit" ? (
-          <div className="space-y-2">
-            <label className="block text-sm">Hook<input value={edits.hook} onChange={(e) => setEdits({ ...edits, hook: e.target.value })} className={input} /></label>
-            <label className="block text-sm">Caption<textarea rows={5} value={edits.caption} onChange={(e) => setEdits({ ...edits, caption: e.target.value })} className={input} /></label>
-            <label className="block text-sm">Hashtags (space-separated)<input value={edits.hashtags} onChange={(e) => setEdits({ ...edits, hashtags: e.target.value })} className={input} /></label>
-            <label className="block text-sm">First comment<input value={edits.firstComment} onChange={(e) => setEdits({ ...edits, firstComment: e.target.value })} className={input} /></label>
-            <label className="block text-sm">Alt text<input value={edits.altText} onChange={(e) => setEdits({ ...edits, altText: e.target.value })} className={input} /></label>
-          </div>
-        ) : (
-          <div className="text-sm text-neutral-600">
-            {draft.alt_text && <p><span className="text-neutral-400">Alt:</span> {draft.alt_text}</p>}
-            <p className="mt-1"><span className="text-neutral-400">Media plan:</span> {draft.media_plan.kind.replace("_", " ")}</p>
-          </div>
-        )}
-        {mode === "reject" && (
-          <label className="block text-sm">What&apos;s wrong? (optional)
-            <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Tell it what's wrong, or leave blank to let it guess." className={input} />
-          </label>
-        )}
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <div className="mt-auto flex flex-wrap gap-2">
+        <AnimatePresence initial={false}>
+          {draft.change_notes.length > 0 && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+              <div className="rounded-xl border border-accent/30 bg-accent-soft/50 p-3 text-sm">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-accent-strong dark:text-accent">What changed</div>
+                <ul className="mt-1 list-disc pl-4 text-fg">{draft.change_notes.map((c, i) => <li key={i}>{c}</li>)}</ul>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <AnimatePresence mode="wait" initial={false}>
+          {mode === "edit" ? (
+            <motion.div key="edit" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="space-y-3">
+              <Field label="Hook"><Input value={edits.hook} onChange={(e) => setEdits({ ...edits, hook: e.target.value })} /></Field>
+              <Field label="Caption"><Textarea rows={5} value={edits.caption} onChange={(e) => setEdits({ ...edits, caption: e.target.value })} /></Field>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Hashtags" hint="space-separated"><Input value={edits.hashtags} onChange={(e) => setEdits({ ...edits, hashtags: e.target.value })} /></Field>
+                <Field label="First comment"><Input value={edits.firstComment} onChange={(e) => setEdits({ ...edits, firstComment: e.target.value })} /></Field>
+              </div>
+              <Field label="Alt text"><Input value={edits.altText} onChange={(e) => setEdits({ ...edits, altText: e.target.value })} /></Field>
+            </motion.div>
+          ) : mode === "reject" ? (
+            <motion.div key="reject" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
+              <Field label="What's wrong?" hint="optional"><Textarea rows={3} autoFocus value={note} onChange={(e) => setNote(e.target.value)} placeholder="Tell it what's wrong, or leave blank and let it infer from your history." /></Field>
+            </motion.div>
+          ) : (
+            <motion.div key="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-1 text-sm text-fg-muted">
+              {draft.alt_text && <p><span className="text-fg-subtle">Alt · </span>{draft.alt_text}</p>}
+              <p><span className="text-fg-subtle">Media plan · </span>{draft.media_plan.kind.replace(/_/g, " ")}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        {error && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</motion.p>}
+        <div className="mt-auto flex flex-wrap gap-2 pt-1">
           {mode === "view" && (<>
-            <button disabled={disabled} onClick={() => run("approve")} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm text-white disabled:opacity-40">{busy === "approve" ? "Approving…" : "Approve"}</button>
-            <button disabled={disabled} onClick={() => setMode("edit")} className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm disabled:opacity-40">Edit</button>
-            <button disabled={disabled} onClick={() => setMode("reject")} className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm disabled:opacity-40">Reject</button>
-            <button disabled={disabled} onClick={() => run("regenerate")} className="rounded-lg border border-violet-300 text-violet-800 px-3 py-1.5 text-sm disabled:opacity-40">{busy === "regenerate" ? "Thinking…" : "Regenerate"}</button>
+            <Button size="sm" variant="accent" disabled={locked} loading={busy === "approve"} onClick={() => run("approve")}>Approve</Button>
+            <Button size="sm" variant="secondary" disabled={locked} onClick={() => setMode("edit")}>Edit</Button>
+            <Button size="sm" variant="secondary" disabled={locked} onClick={() => setMode("reject")}>Reject</Button>
+            <Button size="sm" variant="ghost" disabled={locked} loading={busy === "regenerate"} onClick={() => run("regenerate")}>↻ Regenerate</Button>
           </>)}
           {mode === "edit" && (<>
-            <button disabled={disabled} onClick={() => run("edit", { edits: { hook: edits.hook, caption: edits.caption, hashtags: edits.hashtags.split(/\s+/).filter(Boolean), firstComment: edits.firstComment || null, altText: edits.altText || null } })} className="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm text-white disabled:opacity-40">{busy === "edit" ? "Saving…" : "Save edits"}</button>
-            <button disabled={busy !== null} onClick={() => setMode("view")} className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm">Cancel</button>
+            <Button size="sm" disabled={locked} loading={busy === "edit"} onClick={() => run("edit", { edits: { hook: edits.hook, caption: edits.caption, hashtags: edits.hashtags.split(/\s+/).filter(Boolean), firstComment: edits.firstComment || null, altText: edits.altText || null } })}>Save edits</Button>
+            <Button size="sm" variant="ghost" disabled={busy !== null} onClick={() => setMode("view")}>Cancel</Button>
           </>)}
           {mode === "reject" && (<>
-            <button disabled={disabled} onClick={() => run("reject", { note })} className="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm text-white disabled:opacity-40">{busy === "reject" ? "Regenerating…" : "Reject & regenerate"}</button>
-            <button disabled={busy !== null} onClick={() => setMode("view")} className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm">Cancel</button>
+            <Button size="sm" disabled={locked} loading={busy === "reject"} onClick={() => run("reject", { note })}>Reject &amp; regenerate</Button>
+            <Button size="sm" variant="ghost" disabled={busy !== null} onClick={() => setMode("view")}>Cancel</Button>
           </>)}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
