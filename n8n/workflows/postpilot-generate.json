@@ -1,0 +1,255 @@
+{
+  "id": "PostpilotGenerate01",
+  "name": "Postpilot \u00b7 generate",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "PostpilotErrors001",
+    "saveManualExecutions": true
+  },
+  "nodes": [
+    {
+      "id": "n-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "postpilot-generate",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "postpilot-generate",
+        "responseMode": "onReceived",
+        "options": {},
+        "authentication": "headerAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PpHeaderAuth00001",
+          "name": "Postpilot app secret"
+        }
+      }
+    },
+    {
+      "id": "n-tag",
+      "name": "Tag execution",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const campaignId = $input.first().json.body.campaignId;\nif (!/^[0-9a-f-]{36}$/i.test(String(campaignId))) throw new Error('campaignId missing or malformed');\n$execution.customData.set('campaignId', String(campaignId));\nreturn [{ json: { campaignId } }];"
+      }
+    },
+    {
+      "id": "n-bundle",
+      "name": "Get prompt bundle",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "url": "=APP_BASE_URL_HERE/api/campaigns/{{ $json.campaignId }}/bundle",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "bypass-tunnel-reminder",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PpHeaderAuth00001",
+          "name": "Postpilot app secret"
+        }
+      }
+    },
+    {
+      "id": "n-split",
+      "name": "Split Out",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "fieldToSplitOut": "bundles",
+        "include": "allOtherFields",
+        "options": {}
+      }
+    },
+    {
+      "id": "n-gemini",
+      "name": "Gemini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 4000,
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/{{ $json.model }}:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ systemInstruction: { parts: [{ text: $json.system }] }, contents: [{ role: 'user', parts: [{ text: $json.user }] }], generationConfig: { responseMimeType: 'application/json', responseSchema: $json.responseSchema, temperature: 0.9 } }) }}",
+        "options": {
+          "timeout": 90000,
+          "batching": {
+            "batch": {
+              "batchSize": 2,
+              "batchInterval": 1500
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "PpGeminiQuery0001",
+          "name": "Postpilot Gemini key"
+        }
+      }
+    },
+    {
+      "id": "n-parse",
+      "name": "Parse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const bundles = $('Split Out').all();\nreturn $input.all().map((it, i) => {\n  const src = bundles[i].json;\n  const text = it.json.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';\n  return { json: { campaignId: src.campaignId, platform: src.platform, candidateIndex: src.candidateIndex, output: JSON.parse(text) } };\n});"
+      }
+    },
+    {
+      "id": "n-post",
+      "name": "Post draft",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "parameters": {
+        "method": "POST",
+        "url": "=APP_BASE_URL_HERE/api/campaigns/{{ $json.campaignId }}/drafts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "bypass-tunnel-reminder",
+              "value": "1"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PpHeaderAuth00001",
+          "name": "Postpilot app secret"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Tag execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag execution": {
+      "main": [
+        [
+          {
+            "node": "Get prompt bundle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get prompt bundle": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini": {
+      "main": [
+        [
+          {
+            "node": "Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse": {
+      "main": [
+        [
+          {
+            "node": "Post draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
