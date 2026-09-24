@@ -65,9 +65,14 @@ export function DraftCard({ draft, referenceImage, onAction }: { draft: DraftRow
               <Field label="What's wrong?" hint="optional"><Textarea rows={3} autoFocus value={note} onChange={(e) => setNote(e.target.value)} placeholder="Tell it what's wrong, or leave blank and let it infer from your history." /></Field>
             </motion.div>
           ) : (
-            <motion.div key="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-1 text-sm text-fg-muted">
-              {draft.alt_text && <p><span className="text-fg-subtle">Alt · </span>{draft.alt_text}</p>}
-              <p><span className="text-fg-subtle">Media plan · </span>{draft.media_plan.kind.replace(/_/g, " ")}</p>
+            <motion.div key="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+              <p className="font-serif text-2xl leading-tight">{draft.hook}</p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-fg-muted">{draft.caption.startsWith(draft.hook) ? draft.caption.slice(draft.hook.length).trim() : draft.caption}</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-fg-subtle">
+                <span>Media · {draft.media_plan.kind.replace(/_/g, " ")}</span>
+                {draft.hashtags.length > 0 && <span>{draft.hashtags.length} hashtags</span>}
+                {draft.alt_text && <span className="basis-full truncate">Alt · {draft.alt_text}</span>}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

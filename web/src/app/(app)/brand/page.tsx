@@ -30,7 +30,7 @@ export default async function BrandPage() {
             <label className="block">
               <span className="block text-[13px] font-medium">Logo <span className="font-normal text-fg-subtle">PNG/SVG/JPG</span></span>
               <div className="mt-1.5 flex items-center gap-4 rounded-xl border border-dashed border-line-strong bg-bg p-4">
-                {kit.logoUrl && /* eslint-disable-next-line @next/next/no-img-element -- remote logo preview */ <img src={kit.logoUrl} alt="Current logo" className="h-12 w-auto rounded" />}
+                {kit.logoUrl &&   <img src={kit.logoUrl} alt="Current logo" className="h-12 w-auto rounded" />}
                 <input name="logo" type="file" accept="image/*" className="text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-fg file:px-3 file:py-1.5 file:text-xs file:text-bg" />
               </div>
             </label>
