@@ -1,0 +1,76 @@
+{
+  "id": "PostpilotAnalytics1",
+  "name": "Postpilot \u00b7 analytics",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "PostpilotErrors001",
+    "saveManualExecutions": true
+  },
+  "nodes": [
+    {
+      "id": "n-schedule",
+      "name": "Every interval",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n-http",
+      "name": "Sync metrics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "APP_BASE_URL_HERE/api/analytics/sync",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {
+          "timeout": 55000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PpHeaderAuth00001",
+          "name": "Postpilot app secret"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 30000
+    }
+  ],
+  "connections": {
+    "Every interval": {
+      "main": [
+        [
+          {
+            "node": "Sync metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
