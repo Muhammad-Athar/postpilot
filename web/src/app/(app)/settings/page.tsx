@@ -9,7 +9,7 @@ export default async function SettingsPage() {
   const { workspace } = await getSession();
   const cadence = workspace.cadence_rule as { type?: string; times?: string[] };
   return (
-    <div className="max-w-2xl">
+    <div className="">
       <PageTitle sub="Mode decides whether this is one brand or many. Cadence decides how approved drafts fill the calendar.">Workspace settings</PageTitle>
       <Card className="p-6">
         <form action={updateWorkspace} className="space-y-5">

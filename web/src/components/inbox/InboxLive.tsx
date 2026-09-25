@@ -48,7 +48,7 @@ export function InboxLive({ campaigns, initialDrafts, brandId }: { campaigns: Ca
   }, [drafts, showHandled]);
 
   return (
-    <div className="max-w-5xl space-y-10">
+    <div className="space-y-10">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <PageTitle sub="Approve what you like. Everything you decide here teaches the next batch.">Inbox</PageTitle>
         <label className="mb-6 flex cursor-pointer items-center gap-2 text-sm text-fg-muted"><input type="checkbox" className="accent-[var(--accent)]" checked={showHandled} onChange={(e) => setShowHandled(e.target.checked)} />Show approved &amp; rejected</label>
