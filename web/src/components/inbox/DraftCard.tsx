@@ -22,13 +22,13 @@ export function DraftCard({ draft, referenceImage, onAction }: { draft: DraftRow
   }
 
   const locked = busy !== null || draft.status !== "draft";
-  const tone = draft.status === "approved" ? "ok" : draft.status === "rejected" ? "neutral" : "warn";
+  const tone = draft.status === "approved" || draft.status === "scheduled" ? "ok" : draft.status === "rejected" ? "neutral" : "warn";
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: draft.status === "rejected" ? 0.55 : 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      className={`grid gap-5 rounded-[var(--radius)] border bg-elev p-4 shadow-card md:grid-cols-[270px_1fr] ${draft.status === "approved" ? "border-ok/50" : "border-line"}`}
+      className={`grid gap-5 rounded-[var(--radius)] border bg-elev p-4 shadow-card md:grid-cols-[270px_1fr] ${draft.status === "approved" || draft.status === "scheduled" ? "border-ok/50" : "border-line"}`}
     >
       <PlatformPreview draft={draft} referenceImage={referenceImage} />
       <div className="flex min-w-0 flex-col gap-3">

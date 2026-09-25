@@ -11,7 +11,7 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { admin, brand } = await getSession();
+  const { admin, brand, workspace } = await getSession();
   const { id } = await params;
   if (!isUuid(id)) return NextResponse.json({ error: "bad id" }, { status: 400 });
   const parsed = bodySchema.safeParse(await req.json().catch(() => ({})));
@@ -19,7 +19,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { data: d } = await admin.from("drafts").select("id, workspace_id, campaign_id, brand_id, platform, candidate_index, version, hook, caption, hashtags, first_comment, alt_text, status").eq("id", id).eq("brand_id", brand.id).single();
   if (!d) return NextResponse.json({ error: "not found" }, { status: 404 });
   try {
-    const result = await applyDecision(admin, d as DraftRecord, { id: brand.id, name: brand.name, voice_profile: brand.voice_profile }, parsed.data);
+    const result = await applyDecision(admin, d as DraftRecord, { id: brand.id, name: brand.name, voice_profile: brand.voice_profile }, parsed.data, { timezone: workspace.timezone, cadence_rule: workspace.cadence_rule });
     return NextResponse.json({ ok: true, ...result });
   } catch (e) {
     const status = (e as { status?: number }).status ?? 500;
