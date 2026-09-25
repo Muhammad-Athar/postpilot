@@ -9,6 +9,9 @@ export async function POST(req: Request) {
   let created: Awaited<ReturnType<typeof createCampaign>>;
   try {
     created = await createCampaign(admin, { workspaceId: workspace.id, brandId: brand.id, prompt: String(body.prompt ?? ""), references: body.references ?? [], overrides: body.settings ?? {}, defaults: workspace.default_settings });
+  if (typeof body.scheduledFor === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.scheduledFor)) {
+    await admin.from("campaigns").update({ settings: { ...created.settings, scheduledFor: body.scheduledFor } }).eq("id", created.id);
+  }
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Invalid request" }, { status: 400 });
   }

@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { CalendarDays } from "lucide-react";
+import { Dropzone } from "./Dropzone";
 import { motion } from "framer-motion";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { PLATFORMS, PLATFORM_RULES, type Platform } from "@/lib/platforms/rules";
@@ -14,6 +16,8 @@ type Props = { workspaceId: string; defaults: Partial<CampaignSettings> };
 
 export function NewCampaignForm({ workspaceId, defaults }: Props) {
   const router = useRouter();
+  const params = useSearchParams();
+  const [scheduledFor, setScheduledFor] = useState<string>(params.get("date") ?? "");
   const [prompt, setPrompt] = useState("");
   const [urls, setUrls] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -45,10 +49,10 @@ export function NewCampaignForm({ workspaceId, defaults }: Props) {
         await fetch("/api/settings/defaults", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(s) });
       }
       setBusy("Starting generation…");
-      const res = await fetch("/api/campaigns", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ prompt, references, settings: s }) });
+      const res = await fetch("/api/campaigns", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ prompt, references, settings: s, scheduledFor: scheduledFor || undefined }) });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.formErrors?.join(", ") || json.error || "Request failed");
-      router.push(`/inbox?campaign=${json.id}`);
+      router.push(scheduledFor ? `/calendar?date=${scheduledFor}` : `/inbox?campaign=${json.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -63,29 +67,35 @@ export function NewCampaignForm({ workspaceId, defaults }: Props) {
   return (
     <form onSubmit={submit} className="">
       <PageTitle sub="One brief in, platform-native candidates out. Settings here override your workspace defaults.">New campaign</PageTitle>
-      <div className="grid items-start gap-6 lg:grid-cols-[1fr_360px]">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5 rounded-[var(--radius)] border border-line bg-elev p-6 shadow-card">
-          <Field label="What should we post about?">
-            <Textarea required rows={6} value={prompt} onChange={(e) => setPrompt(e.target.value)} className="font-serif text-lg leading-relaxed" placeholder="Launch of our monthly coffee subscription: first box ships free, beans roasted 48h before shipping, cancel anytime." />
-          </Field>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <label className="block">
-              <Label hint="optional">Reference images or a video</Label>
-              <div className="mt-1.5 rounded-xl border border-dashed border-line-strong bg-bg px-4 py-6 text-center text-sm text-fg-muted transition-colors hover:border-accent hover:bg-accent-soft/30">
-                <input type="file" multiple accept="image/*,video/mp4,video/quicktime" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} className="block w-full text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-fg file:px-3 file:py-1.5 file:text-xs file:text-bg" />
-                {files.length > 0 ? <div className="mt-2 text-xs text-fg">{files.map((f) => f.name).join(", ")}</div> : <div className="mt-2 text-xs text-fg-subtle">Your own media is used first, stock second.</div>}
-              </div>
+      <div className="grid grid-cols-12 items-start gap-6">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="col-span-12 flex min-h-[600px] flex-col gap-5 rounded-[var(--radius)] border border-line bg-elev p-6 shadow-card xl:col-span-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="font-serif text-2xl">The brief</div>
+            <label className="flex cursor-pointer items-center gap-2 rounded-full border border-line bg-bg px-3 py-1.5 text-sm text-fg-muted transition-colors hover:border-line-strong">
+              <CalendarDays size={16} className="text-accent-strong dark:text-accent" />
+              <span>{scheduledFor ? "Scheduled for" : "Schedule for a day"}</span>
+              <input type="date" value={scheduledFor} onChange={(e) => setScheduledFor(e.target.value)} className="cursor-pointer bg-transparent text-fg outline-none" />
+              {scheduledFor && <button type="button" onClick={() => setScheduledFor("")} className="text-xs text-fg-subtle hover:text-fg">clear</button>}
             </label>
-            <Field label="Reference links" hint="one per line"><Textarea rows={5} value={urls} onChange={(e) => setUrls(e.target.value)} placeholder="https://…" /></Field>
+          </div>
+          <Field label="What should we post about?">
+            <Textarea required rows={10} value={prompt} onChange={(e) => setPrompt(e.target.value)} className="min-h-[220px] font-serif text-xl leading-relaxed" placeholder="Launch of our monthly coffee subscription: first box ships free, beans roasted 48h before shipping, cancel anytime." />
+          </Field>
+          <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
+            <div>
+              <Label hint="optional">Reference images or a video</Label>
+              <div className="mt-1.5"><Dropzone files={files} onChange={setFiles} /></div>
+            </div>
+            <Field label="Reference links" hint="one per line"><Textarea rows={6} value={urls} onChange={(e) => setUrls(e.target.value)} placeholder="https://…" /></Field>
           </div>
           {error && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</motion.p>}
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="mt-auto flex flex-wrap items-center gap-4">
             <Button type="submit" variant="accent" size="lg" loading={!!busy} disabled={!prompt.trim() || !(s.platforms?.length)}>{busy ?? `Generate ${count} candidates`}</Button>
             <span className="text-sm text-fg-subtle">{s.platforms?.length ?? 0} platforms × {s.candidatesPerSlot ?? 2} candidates</span>
           </div>
         </motion.div>
 
-        <motion.aside initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="h-fit space-y-5 rounded-[var(--radius)] border border-line bg-elev p-6 shadow-card">
+        <motion.aside initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="col-span-12 h-fit space-y-5 rounded-[var(--radius)] border border-line bg-elev p-6 shadow-card xl:col-span-4">
           <div className="font-serif text-xl">Settings for this request</div>
           <div>
             <Label>Platforms · native</Label>
