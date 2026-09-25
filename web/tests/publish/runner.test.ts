@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { publishSlot, type ClaimedSlot, type RunnerDeps } from "@/lib/publish/runner";
+import { claimDueSlots, publishSlot, type ClaimedSlot, type RunnerDeps } from "@/lib/publish/runner";
 import { PublishError } from "@/lib/publishers/types";
 
 const slot: ClaimedSlot = { id: "s1", workspace_id: "w", brand_id: "b", platform: "bluesky", draft_id: "d1", scheduled_at: new Date().toISOString(), attempts: 0 };
@@ -64,5 +64,20 @@ describe("publishSlot", () => {
     const h = harness({ draft: { id: "d1", status: "approved", caption: "x", hashtags: [], media_urls: [] } });
     expect(await publishSlot(h.admin, slot, h.deps)).toBe("failed");
     expect(w(h, "drafts")).toHaveLength(0);
+  });
+});
+
+describe("claimDueSlots", () => {
+  it("flips only still-filled, due slots to claimed and returns them, without a limit clause", async () => {
+    const calls: string[] = [];
+    const q: Record<string, unknown> = new Proxy({}, { get: (_t, prop: string) => {
+      if (prop === "then") return (r: (v: unknown) => void) => r({ data: [{ id: "s1" }], error: null });
+      return (...args: unknown[]) => { calls.push(`${prop}(${args.map(String).join(",")})`); return q; };
+    } });
+    const admin = { from: () => q } as never;
+    const out = await claimDueSlots(admin, new Date("2026-10-01T00:00:00Z"));
+    expect(out).toEqual([{ id: "s1" }]);
+    expect(calls).toEqual(expect.arrayContaining(["update([object Object])", "eq(status,filled)", "lte(scheduled_at,2026-10-01T00:00:00.000Z)", "not(draft_id,is,null)"]));
+    expect(calls.some((c) => c.startsWith("limit("))).toBe(false);
   });
 });
