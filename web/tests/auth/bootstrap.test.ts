@@ -1,29 +1,30 @@
 import { describe, it, expect } from "vitest";
 import { ensureWorkspace } from "@/lib/auth/bootstrap";
 
-function fakeDb(existing: { workspace_id: string } | null) {
-  const inserted: Record<string, unknown[]> = {};
-  const from = (table: string) => ({
-    select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: existing, error: null }) }) }),
-    insert: (row: unknown) => {
-      (inserted[table] ??= []).push(row);
-      return { select: () => ({ single: async () => ({ data: { id: `${table}-id`, ...(row as object) }, error: null }) }) };
-    },
-  });
-  return { db: { from } as never, inserted };
+function fakeDb(existing: { workspace_id: string }[]) {
+  const rpcCalls: { fn: string; args: unknown }[] = [];
+  const from = () => {
+    const q = { select: () => q, eq: () => q, order: () => q, limit: async () => ({ data: existing, error: null }) };
+    return q;
+  };
+  const rpc = async (fn: string, args: unknown) => { rpcCalls.push({ fn, args }); return { data: "ws-new", error: null }; };
+  return { db: { from, rpc } as never, rpcCalls };
 }
 
 describe("ensureWorkspace", () => {
-  it("returns existing membership without inserting", async () => {
-    const { db, inserted } = fakeDb({ workspace_id: "ws-1" });
+  it("returns the existing membership without creating anything", async () => {
+    const { db, rpcCalls } = fakeDb([{ workspace_id: "ws-1" }]);
     expect(await ensureWorkspace(db, "user-1", "a@b.co")).toBe("ws-1");
-    expect(inserted).toEqual({});
+    expect(rpcCalls).toEqual([]);
   });
-  it("creates workspace, membership, brand and preference row for a new user", async () => {
-    const { db, inserted } = fakeDb(null);
-    expect(await ensureWorkspace(db, "user-1", "a@b.co")).toBe("workspaces-id");
-    expect(Object.keys(inserted)).toEqual(["workspaces", "workspace_members", "brands", "preference_summaries"]);
-    expect(inserted.brands[0]).toMatchObject({ workspace_id: "workspaces-id", name: "My brand" });
-    expect(inserted.workspace_members[0]).toMatchObject({ user_id: "user-1", role: "owner" });
+  it("returns the first (earliest) workspace when duplicates exist instead of creating another", async () => {
+    const { db, rpcCalls } = fakeDb([{ workspace_id: "ws-oldest" }, { workspace_id: "ws-dup" }]);
+    expect(await ensureWorkspace(db, "user-1", "a@b.co")).toBe("ws-oldest");
+    expect(rpcCalls).toEqual([]);
+  });
+  it("creates through the locked SQL function for a new user", async () => {
+    const { db, rpcCalls } = fakeDb([]);
+    expect(await ensureWorkspace(db, "user-1", "a@b.co")).toBe("ws-new");
+    expect(rpcCalls).toEqual([{ fn: "ensure_workspace", args: { p_user: "user-1", p_email: "a@b.co" } }]);
   });
 });

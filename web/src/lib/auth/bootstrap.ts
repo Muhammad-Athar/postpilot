@@ -1,12 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-/** First sign-in creates a workspace, owner membership, a default brand and its preference row. Idempotent. */
+/** Returns the user's workspace, creating workspace + owner membership + default brand + preference row on first sign-in.
+ *  Lookup picks the earliest workspace so duplicates can never fan out; creation runs inside the `ensure_workspace`
+ *  SQL function under a per-user advisory lock, so concurrent first requests share one workspace. */
 export async function ensureWorkspace(db: SupabaseClient, userId: string, email: string): Promise<string> {
-  const { data: m } = await db.from("workspace_members").select("workspace_id").eq("user_id", userId).maybeSingle();
-  if (m) return m.workspace_id as string;
-  const { data: ws } = await db.from("workspaces").insert({ name: `${email.split("@")[0]}'s workspace` }).select().single();
-  await db.from("workspace_members").insert({ workspace_id: ws.id, user_id: userId, role: "owner" }).select().single();
-  const { data: brand } = await db.from("brands").insert({ workspace_id: ws.id, name: "My brand" }).select().single();
-  await db.from("preference_summaries").insert({ brand_id: brand.id, workspace_id: ws.id }).select().single();
-  return ws.id as string;
+  const { data: rows } = await db.from("workspace_members").select("workspace_id, workspaces(created_at)").eq("user_id", userId).order("created_at", { referencedTable: "workspaces", ascending: true }).limit(1);
+  const existing = (rows as { workspace_id: string }[] | null)?.[0];
+  if (existing) return existing.workspace_id;
+  const { data, error } = await db.rpc("ensure_workspace", { p_user: userId, p_email: email });
+  if (error || typeof data !== "string") throw error ?? new Error("ensure_workspace returned nothing");
+  return data;
 }
