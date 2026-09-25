@@ -31,7 +31,7 @@ export async function saveBrand(formData: FormData) {
     defaultCta: String(formData.get("defaultCta") ?? "").trim() || undefined,
     hashtagSets: lines(formData.get("hashtagSets")),
   });
-  const bannedWords = list(formData.get("bannedWords"));
+  const bannedWords = list(formData.get("bannedWords")).flatMap((w) => w.split(/\r?\n/)).map((w) => w.trim()).filter(Boolean);
   const name = String(formData.get("name") ?? "").trim() || brand.name;
   await admin.from("brands").update({ name, kit, banned_words: bannedWords, voice_profile: buildVoiceProfile(kit, bannedWords) }).eq("id", brand.id).eq("workspace_id", workspace.id);
   revalidatePath("/brand");
