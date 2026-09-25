@@ -85,7 +85,8 @@ export function BrandKitForm({ brandName, kit, bannedWords, voiceProfile, onboar
               <label className="block">
                 <span className="block text-[13px] font-medium">Logo <span className="font-normal text-fg-subtle">PNG/SVG/JPG</span></span>
                 <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-dashed border-line-strong bg-bg p-3">
-                  {logo ? /* eslint-disable-next-line @next/next/no-img-element -- logo preview */ <img src={logo} alt="Logo" className="h-10 w-auto rounded" /> : <span className="grid h-10 w-10 place-items-center rounded bg-muted text-xs text-fg-subtle">Logo</span>}
+                  {/* eslint-disable-next-line @next/next/no-img-element -- logo preview */}
+                  {logo ? <img src={logo} alt="Logo" className="h-10 w-auto rounded" /> : <span className="grid h-10 w-10 place-items-center rounded bg-muted text-xs text-fg-subtle">Logo</span>}
                   <input name="logo" type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) setLogo(URL.createObjectURL(f)); }} className="min-w-0 flex-1 text-xs file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-fg file:px-3 file:py-1.5 file:text-xs file:text-bg" />
                 </div>
               </label>
