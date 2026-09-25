@@ -1,5 +1,7 @@
 # n8n workflows
 
+Part of [Postpilot](../README.md).
+
 Self-hosted n8n (Docker) runs the long-running jobs. The app never calls Gemini for bulk generation itself; it hands n8n a prompt bundle and receives validated drafts back.
 
 | Workflow | Trigger | What it does |
