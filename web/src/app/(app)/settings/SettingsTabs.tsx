@@ -1,5 +1,5 @@
 "use client";
-import { useRef } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Building2, UserRound, KeyRound, Gem } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent, TabPanelMotion } from "@/components/ui/Tabs";
@@ -17,10 +17,11 @@ export function SettingsTabs({ panels }: { panels: Record<(typeof TABS)[number][
   const params = useSearchParams();
   const raw = (params.get("tab") as keyof typeof panels) || "workspace";
   const current = raw in panels ? raw : "workspace";
-  const prev = useRef(current);
   const idx = (v: string) => TABS.findIndex((t) => t.value === v);
-  const direction = idx(current) >= idx(prev.current) ? 1 : -1;
-  prev.current = current;
+  // slide direction derived from the previous tab; state adjusted during render (React's "previous value" pattern)
+  const [track, setTrack] = useState({ tab: current, direction: 1 });
+  let direction = track.direction;
+  if (track.tab !== current) { direction = idx(current) >= idx(track.tab) ? 1 : -1; setTrack({ tab: current, direction }); }
   return (
     <Tabs value={current} onValueChange={(v) => router.replace(`/settings?tab=${v}`)} orientation="vertical" className="grid gap-6 md:grid-cols-[220px_1fr]">
       <div className="md:sticky md:top-24 md:self-start">
