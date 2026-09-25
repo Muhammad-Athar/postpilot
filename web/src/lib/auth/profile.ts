@@ -11,6 +11,13 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
   const { user, admin } = await getSession();
   const v = validateProfileInput({ displayName: String(formData.get("displayName") ?? ""), email: String(formData.get("email") ?? user.email ?? "") });
   if (!v.ok) return v;
+  if (v.value.email !== (user.email ?? "").toLowerCase()) {
+    const current = String(formData.get("currentPassword") ?? "");
+    if (!current) return { ok: false, error: "Enter your current password to change the email address." };
+    const probe = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { error: bad } = await probe.auth.signInWithPassword({ email: user.email!, password: current });
+    if (bad) return { ok: false, error: "Current password is incorrect." };
+  }
   let avatar_url = (user.user_metadata?.avatar_url as string | undefined) ?? undefined;
   const file = formData.get("avatar");
   if (file instanceof File && file.size > 0) {

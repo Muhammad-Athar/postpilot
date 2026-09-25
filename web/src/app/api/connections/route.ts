@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSession } from "@/lib/auth/session";
 import { seal } from "@/lib/publishers/credentials";
-import { assertPublicHttpUrl } from "@/lib/net/safe-fetch";
+import { safeFetch } from "@/lib/net/safe-fetch";
 
 const body = z.discriminatedUnion("platform", [
   z.object({ platform: z.literal("bluesky"), handle: z.string().min(3).max(253).transform((h) => h.replace(/^@/, "").toLowerCase()), appPassword: z.string().min(8).max(100) }),
@@ -22,10 +22,9 @@ export async function POST(req: Request) {
       if (!r.ok) return NextResponse.json({ error: "Bluesky rejected the handle or app password." }, { status: 400 });
       externalId = (await r.json()).handle ?? p.handle;
     } else {
-      await assertPublicHttpUrl(p.instance);
-      const r = await fetch(`${p.instance.replace(/\/$/, "")}/api/v1/accounts/verify_credentials`, { headers: { authorization: `Bearer ${p.accessToken}` } });
-      if (!r.ok) return NextResponse.json({ error: "Mastodon rejected the token." }, { status: 400 });
-      externalId = `@${(await r.json()).username}@${new URL(p.instance).host}`;
+      const r = await safeFetch(`${p.instance.replace(/\/$/, "")}/api/v1/accounts/verify_credentials`, { headers: { authorization: `Bearer ${p.accessToken}` }, maxRedirects: 0, maxBytes: 256 * 1024 });
+      if (r.status !== 200) return NextResponse.json({ error: "Mastodon rejected the token (the instance must answer directly, without redirects)." }, { status: 400 });
+      externalId = `@${JSON.parse(r.bytes.toString("utf8")).username}@${new URL(p.instance).host}`;
     }
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Could not verify" }, { status: 400 });

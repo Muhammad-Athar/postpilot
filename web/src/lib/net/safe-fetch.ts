@@ -71,14 +71,16 @@ export function isOwnStorageUrl(url: string): boolean {
 }
 
 /** Fetch with SSRF guard, manual redirect handling (each hop re-validated), timeout and byte cap. */
-export async function safeFetch(url: string, opts: { maxBytes?: number; timeoutMs?: number; maxRedirects?: number } = {}): Promise<{ bytes: Buffer; contentType: string }> {
-  const { maxBytes = 15 * 1024 * 1024, timeoutMs = 10_000, maxRedirects = 3 } = opts;
+export async function safeFetch(url: string, opts: { maxBytes?: number; timeoutMs?: number; maxRedirects?: number; headers?: Record<string, string>; method?: string; body?: string } = {}): Promise<{ bytes: Buffer; contentType: string; status: number }> {
+  const { maxBytes = 15 * 1024 * 1024, timeoutMs = 10_000, maxRedirects = 3, headers = {}, method = "GET", body } = opts;
   let current = url;
   for (let hop = 0; hop <= maxRedirects; hop++) {
     const [address] = await assertPublicHttpUrl(current);
     const dispatcher = pinnedAgent(address, timeoutMs);
     try {
-      const res = await undiciFetch(current, { dispatcher, redirect: "manual", signal: AbortSignal.timeout(timeoutMs), headers: { "user-agent": "PostpilotBot/1.0" } });
+      // Auth headers are sent only to the original host; a redirect drops them.
+      const hop0 = current === url;
+      const res = await undiciFetch(current, { dispatcher, method, body, redirect: "manual", signal: AbortSignal.timeout(timeoutMs), headers: { "user-agent": "PostpilotBot/1.0", ...(hop0 ? headers : {}) } });
       if ([301, 302, 303, 307, 308].includes(res.status)) {
         const loc = res.headers.get("location");
         if (!loc) throw new Error("Redirect without location");
@@ -86,7 +88,6 @@ export async function safeFetch(url: string, opts: { maxBytes?: number; timeoutM
         current = new URL(loc, current).toString();
         continue;
       }
-      if (!res.ok) throw new Error(`Fetch failed with ${res.status}`);
       const len = Number(res.headers.get("content-length") || 0);
       if (len > maxBytes) throw new Error("Response too large");
       const reader = res.body?.getReader();
@@ -98,7 +99,7 @@ export async function safeFetch(url: string, opts: { maxBytes?: number; timeoutM
         if (total > maxBytes) { await reader.cancel(); throw new Error("Response too large"); }
         chunks.push(value);
       }
-      return { bytes: Buffer.concat(chunks), contentType: res.headers.get("content-type") ?? "" };
+      return { bytes: Buffer.concat(chunks), contentType: res.headers.get("content-type") ?? "", status: res.status };
     } finally {
       await dispatcher.close();
     }
