@@ -20,6 +20,11 @@ export interface DraftRow {
   media_urls: string[];
   change_notes: string[];
   status: DraftStatus;
+  permalink: string | null;
+  publish_error: string | null;
+  published_at: string | null;
+  /** From the schedule_slots relation; present when the inbox query joins it. */
+  schedule_slots?: { scheduled_at: string; status: string }[];
   created_at: string;
   updated_at: string;
 }
@@ -34,4 +39,4 @@ export interface CampaignRow {
   created_at: string;
 }
 
-export type DraftAction = "approve" | "edit" | "reject" | "regenerate";
+export type DraftAction = "approve" | "edit" | "reject" | "regenerate" | "retry";

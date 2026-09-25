@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { ExternalLink, RotateCcw } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
 import { PlatformPreview } from "./PlatformPreview";
 import { ShareForApproval } from "./ShareForApproval";
 import { Button } from "@/components/ui/Button";
@@ -23,7 +25,8 @@ export function DraftCard({ draft, referenceImage, onAction }: { draft: DraftRow
   }
 
   const locked = busy !== null || draft.status !== "draft";
-  const tone = draft.status === "approved" || draft.status === "scheduled" ? "ok" : draft.status === "rejected" ? "neutral" : "warn";
+  const tone = draft.status === "published" ? "ok" : draft.status === "failed" ? "danger" : draft.status === "approved" || draft.status === "scheduled" ? "ok" : draft.status === "rejected" ? "neutral" : "warn";
+  const slot = draft.schedule_slots?.find((s) => s.status === "filled" || s.status === "claimed") ?? draft.schedule_slots?.[0];
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -37,7 +40,18 @@ export function DraftCard({ draft, referenceImage, onAction }: { draft: DraftRow
           <Badge>Candidate {draft.candidate_index + 1}</Badge>
           <Badge tone={draft.parent_draft_id ? "accent" : "neutral"}>v{draft.version}{draft.parent_draft_id ? " · regenerated" : ""}</Badge>
           <Badge tone={tone}>{draft.status}</Badge>
+          {draft.status === "scheduled" && slot && <span className="text-xs text-fg-muted">Scheduled · {format(new Date(slot.scheduled_at), "d MMM, HH:mm")}</span>}
+          {draft.status === "published" && draft.published_at && <span className="text-xs text-fg-muted">Published {formatDistanceToNow(new Date(draft.published_at), { addSuffix: true })}</span>}
+          {draft.status === "published" && draft.permalink && <a href={draft.permalink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-accent-strong underline-offset-2 hover:underline dark:text-accent">View post <ExternalLink size={12} /></a>}
         </div>
+        {draft.status === "published" && draft.publish_error && <p className="rounded-lg bg-muted px-3 py-2 text-xs text-fg-muted">{draft.publish_error}</p>}
+        {draft.status === "failed" && (
+          <div className="rounded-xl border border-danger/30 bg-danger-soft p-3 text-sm">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-danger">Publishing failed</div>
+            <p className="mt-1 text-fg">{draft.publish_error ?? "Unknown error."}</p>
+            <Button size="sm" variant="secondary" className="mt-2" loading={busy === "retry"} disabled={busy !== null} onClick={() => run("retry")}><RotateCcw size={14} /> Retry</Button>
+          </div>
+        )}
         <AnimatePresence initial={false}>
           {draft.change_notes.length > 0 && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">

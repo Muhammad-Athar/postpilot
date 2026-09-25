@@ -15,10 +15,16 @@ export type DraftRecord = {
   hook: string; caption: string; hashtags: string[]; first_comment: string | null; alt_text: string | null; status: DraftStatus;
 };
 type BrandCtx = { id: string; name: string; voice_profile: string };
-export type Decision = { action: "approve" | "edit" | "reject" | "regenerate"; note?: string; edits?: Editable };
+export type Decision = { action: "approve" | "edit" | "reject" | "regenerate" | "retry"; note?: string; edits?: Editable };
 
 /** Applies a review decision: records the feedback event, moves state, and (for reject/regenerate) produces the next version inline. */
 export async function applyDecision(admin: SupabaseClient, d: DraftRecord, brand: BrandCtx, body: Decision, workspace?: { timezone: string; cadence_rule: CadenceRule }): Promise<{ newDraftId?: string; scheduledAt?: string }> {
+  if (body.action === "retry") {
+    // A failed publish goes back on the calendar (failed → scheduled); no feedback event, the copy is unchanged.
+    if (d.status !== "failed" || !workspace) throw Object.assign(new Error(`cannot retry a ${d.status} draft`), { status: 409 });
+    await admin.from("drafts").update({ publish_error: null }).eq("id", d.id);
+    return { scheduledAt: (await scheduleApprovedDraft(admin, d, workspace)).toISOString() };
+  }
   const before: Editable = { hook: d.hook, caption: d.caption, hashtags: d.hashtags, firstComment: d.first_comment, altText: d.alt_text };
   const snapshot = { hook: d.hook, caption: d.caption };
   const embedding = await gemini.embed(`${d.hook}\n${d.caption}`).catch(() => null);

@@ -5,7 +5,7 @@ import { isUuid } from "@/lib/api/guard";
 import { applyDecision, type DraftRecord } from "@/lib/drafts/actions";
 
 const bodySchema = z.object({
-  action: z.enum(["approve", "edit", "reject", "regenerate"]),
+  action: z.enum(["approve", "edit", "reject", "regenerate", "retry"]),
   note: z.string().max(1000).optional(),
   edits: z.object({ hook: z.string().min(1).max(500), caption: z.string().min(1).max(5000), hashtags: z.array(z.string().max(60)).max(30), firstComment: z.string().max(1000).nullable(), altText: z.string().max(500).nullable() }).optional(),
 });
