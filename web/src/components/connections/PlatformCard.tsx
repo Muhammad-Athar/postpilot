@@ -3,7 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Check, Unplug } from "lucide-react";
-import { PLATFORM_RULES, type Platform } from "@/lib/platforms/rules";
+import { ADAPTER_LABEL, PLATFORM_RULES, type Platform } from "@/lib/platforms/rules";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Dialog } from "@/components/ui/Dialog";
@@ -23,6 +23,7 @@ export function PlatformCard({ platform, connection }: { platform: Platform; con
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const canConnect = platform === "bluesky" || platform === "mastodon";
+  const viaZernio = r.adapter === "late";
   const connected = connection?.status === "ok";
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
@@ -36,6 +37,15 @@ export function PlatformCard({ platform, connection }: { platform: Platform; con
       setOpen(false); router.refresh();
     });
   }
+  function connectZernio() {
+    setError(null);
+    start(async () => {
+      const res = await fetch("/api/connections", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ platform }) });
+      const j = await res.json();
+      if (!res.ok) return setError(j.error ?? "Could not connect");
+      router.refresh();
+    });
+  }
   function disconnect() { start(async () => { await fetch("/api/connections", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ platform }) }); router.refresh(); }); }
 
   return (
@@ -44,7 +54,7 @@ export function PlatformCard({ platform, connection }: { platform: Platform; con
         <span className="grid h-10 w-10 place-items-center rounded-full bg-accent-soft font-serif text-lg text-accent-strong dark:text-accent">{r.label[0]}</span>
         <div className="min-w-0 flex-1">
           <div className="font-medium">{r.label}</div>
-          <div className="text-xs text-fg-subtle">{r.adapter === "native" ? "Native adapter" : "Via Late"} · {r.aspect}</div>
+          <div className="text-xs text-fg-subtle">{ADAPTER_LABEL[r.adapter]} · {r.aspect}</div>
         </div>
         <Badge tone={connected ? "ok" : connection?.status === "reconnect" ? "warn" : "neutral"}>{connected ? "Connected" : connection?.status === "reconnect" ? "Reconnect" : "Not connected"}</Badge>
       </div>
@@ -54,10 +64,13 @@ export function PlatformCard({ platform, connection }: { platform: Platform; con
           <Button size="sm" variant="secondary" loading={pending} onClick={disconnect}><Unplug size={14} /> Disconnect</Button>
         ) : canConnect ? (
           <Button size="sm" variant="accent" onClick={() => setOpen(true)}>Connect</Button>
+        ) : viaZernio ? (
+          <Tooltip label="Link the account in your Zernio workspace first, then connect it here"><span><Button size="sm" variant="accent" loading={pending} onClick={connectZernio}>Connect</Button></span></Tooltip>
         ) : (
-          <Tooltip label={r.adapter === "native" ? "Meta app review is in progress; arrives with publishing." : "Arrives with publishing via Late."}><span><Button size="sm" variant="secondary" disabled>Connect</Button></span></Tooltip>
+          <Tooltip label="Meta app review is in progress; arrives with publishing."><span><Button size="sm" variant="secondary" disabled>Connect</Button></span></Tooltip>
         )}
       </div>
+      {viaZernio && error && !open && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>}
       <Dialog open={open} onOpenChange={setOpen} title={`Connect ${r.label}`} description={HELP[platform]}>
         <form onSubmit={submit} className="space-y-4">
           {platform === "bluesky" ? (<>
