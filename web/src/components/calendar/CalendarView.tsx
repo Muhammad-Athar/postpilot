@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { addDays, addMonths, format, isSameDay, isSameMonth, parse } from "date-fns";
+import { addDays, addMonths, format, isSameMonth, parse } from "date-fns";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { monthMatrix, toDateKey } from "@/lib/schedule/slots";
 import type { CalendarEvent } from "@/lib/schedule/events";
