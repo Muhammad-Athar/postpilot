@@ -6,7 +6,7 @@ const TILES = ["Followers", "Reach", "Views", "Likes", "Comments", "Shares", "Sa
 
 export default function AnalyticsPage() {
   return (
-    <div className="max-w-5xl">
+    <div className="">
       <PageTitle sub="Per-platform metrics, and an explanation of what worked that feeds the next brief.">Analytics</PageTitle>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {TILES.map((t) => (

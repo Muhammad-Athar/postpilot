@@ -61,7 +61,7 @@ export function NewCampaignForm({ workspaceId, defaults }: Props) {
   const count = (s.platforms?.length ?? 0) * (s.candidatesPerSlot ?? 2);
 
   return (
-    <form onSubmit={submit} className="max-w-6xl">
+    <form onSubmit={submit} className="">
       <PageTitle sub="One brief in, platform-native candidates out. Settings here override your workspace defaults.">New campaign</PageTitle>
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_360px]">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5 rounded-[var(--radius)] border border-line bg-elev p-6 shadow-card">

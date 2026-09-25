@@ -10,7 +10,7 @@ export default async function BrandPage() {
   const { brand } = await getSession();
   const kit = brandKitSchema.parse(brand.kit ?? {});
   return (
-    <div className="max-w-6xl">
+    <div className="">
       <PageTitle sub="Everything here rides along with every prompt, so the output sounds like you and not like a model.">Brand kit</PageTitle>
       <Stagger className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <Item>

@@ -17,3 +17,13 @@ export async function addBrand(name: string) {
   (await cookies()).set("pp_brand", brand.id, { path: "/", httpOnly: true, sameSite: "lax" });
   revalidatePath("/", "layout");
 }
+
+export async function renameBrand(brandId: string, name: string): Promise<{ error?: string }> {
+  const { workspace, admin } = await getSession();
+  const clean = name.trim();
+  if (clean.length < 2 || clean.length > 60) return { error: "Name must be 2–60 characters." };
+  const { error } = await admin.from("brands").update({ name: clean }).eq("id", brandId).eq("workspace_id", workspace.id);
+  if (error) return { error: error.message };
+  revalidatePath("/", "layout");
+  return {};
+}

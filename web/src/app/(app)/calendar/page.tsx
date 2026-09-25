@@ -8,7 +8,7 @@ export default async function CalendarPage() {
   const cadence = workspace.cadence_rule as { type?: string; times?: string[] };
   const { count } = await admin.from("drafts").select("id", { count: "exact", head: true }).eq("brand_id", brand.id).eq("status", "approved");
   return (
-    <div className="max-w-4xl">
+    <div className="">
       <PageTitle sub="Approved drafts fill the next open slot for their platform.">Calendar</PageTitle>
       <Card className="p-8">
         <div className="flex flex-wrap items-center gap-3">
