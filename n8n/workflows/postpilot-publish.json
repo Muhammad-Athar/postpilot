@@ -1,0 +1,76 @@
+{
+  "id": "PostpilotPublish001",
+  "name": "Postpilot \u00b7 publish",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "PostpilotErrors001",
+    "saveManualExecutions": true
+  },
+  "nodes": [
+    {
+      "id": "n-schedule",
+      "name": "Every interval",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n-http",
+      "name": "Run publish batch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "APP_BASE_URL_HERE/api/publish/run",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {
+          "timeout": 55000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PpHeaderAuth00001",
+          "name": "Postpilot app secret"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 30000
+    }
+  ],
+  "connections": {
+    "Every interval": {
+      "main": [
+        [
+          {
+            "node": "Run publish batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
