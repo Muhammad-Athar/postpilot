@@ -19,9 +19,10 @@ export const defaultDeps: RunnerDeps = { getPublisher: defaultGetPublisher, load
 const IMAGE_LIMITS: Partial<Record<Platform, { maxBytes: number; maxCount: number }>> = { bluesky: { maxBytes: 976_000, maxCount: 4 }, mastodon: { maxBytes: 16_000_000, maxCount: 4 } };
 const backoffMinutes = (attempt: number) => [5, 15, 45][Math.min(attempt, 2)];
 
-/** Atomically takes due slots: only rows still `filled` flip to `claimed`, so overlapping runs never share one. */
-export async function claimDueSlots(admin: SupabaseClient, now = new Date(), limit = 10): Promise<ClaimedSlot[]> {
-  const { data } = await admin.from("schedule_slots").update({ status: "claimed" }).eq("status", "filled").lte("scheduled_at", now.toISOString()).not("draft_id", "is", null).select("id, workspace_id, brand_id, platform, draft_id, scheduled_at, attempts").limit(limit);
+/** Atomically takes every due slot: only rows still `filled` flip to `claimed`, so overlapping runs never share one.
+ *  (No `limit`: PostgREST refuses a limited UPDATE without an ordering, and a 5-minute batch is small anyway.) */
+export async function claimDueSlots(admin: SupabaseClient, now = new Date()): Promise<ClaimedSlot[]> {
+  const { data } = await admin.from("schedule_slots").update({ status: "claimed" }).eq("status", "filled").lte("scheduled_at", now.toISOString()).not("draft_id", "is", null).select("id, workspace_id, brand_id, platform, draft_id, scheduled_at, attempts");
   return (data ?? []) as ClaimedSlot[];
 }
 
