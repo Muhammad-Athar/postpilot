@@ -29,11 +29,17 @@ export async function listMonthEvents(admin: SupabaseClient, brandId: string, mo
     push(at, { id: s.id, kind: d?.status === "published" ? "published" : d?.status === "failed" ? "failed" : "scheduled", title: d?.hook ?? "Scheduled post", time: hhmm(at), platform: s.platform as Platform, draftId: d?.id, campaignId: d?.campaign_id });
   }
   const { data: campaigns } = await admin.from("campaigns").select("id, prompt, status, settings, created_at").eq("brand_id", brandId).gte("created_at", from).lt("created_at", to);
+  const ids = (campaigns ?? []).map((c) => c.id);
+  const pending = new Map<string, number>();
+  if (ids.length) {
+    const { data: drafts } = await admin.from("drafts").select("campaign_id").in("campaign_id", ids).eq("status", "draft");
+    for (const d of drafts ?? []) pending.set(d.campaign_id, (pending.get(d.campaign_id) ?? 0) + 1);
+  }
   for (const c of campaigns ?? []) {
     const target = (c.settings as { scheduledFor?: string })?.scheduledFor;
     const when = target ? new Date(`${target}T12:00:00`) : new Date(c.created_at);
-    const { count } = await admin.from("drafts").select("id", { count: "exact", head: true }).eq("campaign_id", c.id).eq("status", "draft");
-    if ((count ?? 0) > 0) push(when, { id: `rv-${c.id}`, kind: "review", title: `${count} to review · ${c.prompt.slice(0, 40)}${c.prompt.length > 40 ? "…" : ""}`, campaignId: c.id });
+    const count = pending.get(c.id) ?? 0;
+    if (count > 0) push(when, { id: `rv-${c.id}`, kind: "review", title: `${count} to review · ${c.prompt.slice(0, 40)}${c.prompt.length > 40 ? "…" : ""}`, campaignId: c.id });
     else if (c.status === "generating") push(when, { id: `gen-${c.id}`, kind: "campaign", title: `Generating · ${c.prompt.slice(0, 40)}`, campaignId: c.id });
   }
   for (const k of Object.keys(out)) out[k].sort((a, b) => (a.time ?? "99").localeCompare(b.time ?? "99"));
