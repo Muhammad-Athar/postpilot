@@ -35,7 +35,14 @@ export function DayEventCard({ e, day, tz, onChanged, publishEnabled = false }: 
     call(() => fetch(`/api/schedule/${e.slotId}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ at }) }), () => { setMoveOpen(false); onChanged(); });
   };
   const unschedule = () => call(() => fetch(`/api/schedule/${e.slotId}`, { method: "DELETE" }), () => onChanged());
-  const publishNow = () => call(() => fetch(`/api/publish/${e.slotId}`, { method: "POST" }), (j) => onChanged({ kind: "published", permalink: (j.permalink as string | null) ?? null, error: (j.error as string | null) ?? null }));
+  const publishNow = () => start(async () => {
+    setError(null);
+    const r = await fetch(`/api/publish/${e.slotId}`, { method: "POST" }); const j = await r.json().catch(() => ({})) as { result?: string; permalink?: string | null; error?: string | null };
+    if (r.ok) return onChanged({ kind: "published", permalink: j.permalink ?? null, error: j.error ?? null });
+    if (j.result === "failed") return onChanged({ kind: "failed", error: j.error ?? "Publishing failed." });
+    if (j.result === "retry") return setError(`${j.error ?? "Temporary problem."} It will be retried automatically.`);
+    setError(j.error ?? "Something went wrong");
+  });
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="rounded-xl border border-line bg-bg p-3">
