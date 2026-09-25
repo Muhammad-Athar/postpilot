@@ -1,5 +1,23 @@
 import { z } from "zod";
 
+/** "#Tag" from "tag", "#tag", " #Tag " or "#Tag"; drops empties and duplicates. */
+export function normaliseHashtags(tags: string[]): string[] {
+  const out: string[] = [];
+  for (const raw of tags) {
+    const t = raw.trim().replace(/^#+/, "").replace(/\s+/g, "");
+    if (!t) continue;
+    const tag = `#${t}`;
+    if (!out.some((x) => x.toLowerCase() === tag.toLowerCase())) out.push(tag);
+  }
+  return out;
+}
+/** Ensures space-separated tokens that look like tags in a first-comment string carry '#'. */
+export function normaliseHashtagsInText(text: string): string {
+  const tokens = text.trim().split(/\s+/);
+  if (tokens.length === 0 || !tokens.every((t) => /^#?[\p{L}\p{N}_]+$/u.test(t))) return text;
+  return normaliseHashtags(tokens).join(" ");
+}
+
 export const mediaPlanSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("use_reference_image"), index: z.number().int().min(0) }),
   z.object({ kind: z.literal("generate_image"), prompt: z.string().min(1) }),
@@ -11,8 +29,8 @@ export const mediaPlanSchema = z.discriminatedUnion("kind", [
 export const draftOutputSchema = z.object({
   hook: z.string().min(1),
   caption: z.string().min(1),
-  hashtags: z.array(z.string()).default([]),
-  firstComment: z.string().nullable().default(null),
+  hashtags: z.array(z.string()).default([]).transform((tags) => normaliseHashtags(tags)),
+  firstComment: z.string().nullable().default(null).transform((v) => (v ? normaliseHashtagsInText(v) : v)),
   altText: z.string().nullable().default(null),
   mediaPlan: mediaPlanSchema,
   changeNotes: z.array(z.string()).default([]),

@@ -4,7 +4,7 @@ Self-hosted n8n (Docker) runs the long-running jobs. The app never calls Gemini 
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `postpilot-generate.json` | `POST /webhook/postpilot-generate` (Header Auth: `x-postpilot-secret`) | `GET /api/campaigns/:id/bundle` → one Gemini call per platform × candidate (batched 2 at a time, 3 retries) → `POST /api/campaigns/:id/drafts` per candidate |
+| `postpilot-generate.json` | `POST /webhook/postpilot-generate` (Header Auth: `x-postpilot-secret`) | `GET /api/campaigns/:id/bundle` → one `POST /api/campaigns/:id/generate-one` per platform × candidate (one every 6.5 s, 3 retries 30 s apart). The app runs the model with its retry + fallback chain and inserts the draft. |
 | `postpilot-errors.json` | Error Trigger (set as the error workflow of the above) | `POST /api/campaigns/:id/fail` with the failing node and message |
 
 ## Deploy

@@ -25,10 +25,8 @@ export function DraftCard({ draft, referenceImage, onAction }: { draft: DraftRow
   const tone = draft.status === "approved" ? "ok" : draft.status === "rejected" ? "neutral" : "warn";
   return (
     <motion.div
-      layout
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: draft.status === "rejected" ? 0.55 : 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       className={`grid gap-5 rounded-[var(--radius)] border bg-elev p-4 shadow-card md:grid-cols-[270px_1fr] ${draft.status === "approved" ? "border-ok/50" : "border-line"}`}
     >
@@ -49,9 +47,9 @@ export function DraftCard({ draft, referenceImage, onAction }: { draft: DraftRow
             </motion.div>
           )}
         </AnimatePresence>
-        <AnimatePresence mode="wait" initial={false}>
+        <div>
           {mode === "edit" ? (
-            <motion.div key="edit" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="space-y-3">
+            <motion.div key="edit" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
               <Field label="Hook"><Input value={edits.hook} onChange={(e) => setEdits({ ...edits, hook: e.target.value })} /></Field>
               <Field label="Caption"><Textarea rows={5} value={edits.caption} onChange={(e) => setEdits({ ...edits, caption: e.target.value })} /></Field>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -61,11 +59,11 @@ export function DraftCard({ draft, referenceImage, onAction }: { draft: DraftRow
               <Field label="Alt text"><Input value={edits.altText} onChange={(e) => setEdits({ ...edits, altText: e.target.value })} /></Field>
             </motion.div>
           ) : mode === "reject" ? (
-            <motion.div key="reject" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
+            <motion.div key="reject" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
               <Field label="What's wrong?" hint="optional"><Textarea rows={3} autoFocus value={note} onChange={(e) => setNote(e.target.value)} placeholder="Tell it what's wrong, or leave blank and let it infer from your history." /></Field>
             </motion.div>
           ) : (
-            <motion.div key="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+            <motion.div key="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
               <p className="font-serif text-2xl leading-tight">{draft.hook}</p>
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-fg-muted">{draft.caption.startsWith(draft.hook) ? draft.caption.slice(draft.hook.length).trim() : draft.caption}</p>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-fg-subtle">
@@ -75,7 +73,7 @@ export function DraftCard({ draft, referenceImage, onAction }: { draft: DraftRow
               </div>
             </motion.div>
           )}
-        </AnimatePresence>
+        </div>
         {error && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</motion.p>}
         <div className="mt-auto flex flex-wrap gap-2 pt-1">
           {mode === "view" && (<>
