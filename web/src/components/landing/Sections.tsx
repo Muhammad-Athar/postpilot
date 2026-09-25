@@ -2,6 +2,7 @@
 import { motion } from "framer-motion";
 import { Reveal } from "@/components/ui/Motion";
 import { Eyebrow } from "@/components/ui/Heading";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 const STEPS = [
   { n: "01", t: "Brief it", d: "A sentence, a product photo, a raw video, or a link. Set how many posts, which platforms, the tone, the length of the Short." },
@@ -26,11 +27,11 @@ export function HowItWorks() {
       <div className="mt-10 grid gap-4 md:grid-cols-4">
         {STEPS.map((s, i) => (
           <Reveal key={s.n} delay={i * 0.08}>
-            <div className="group h-full rounded-[var(--radius)] border border-line bg-elev p-6 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-line-strong hover:shadow-lift">
+            <motion.div whileHover={{ y: -6 }} transition={{ type: "spring", stiffness: 260, damping: 22 }} className="group h-full rounded-[var(--radius)] border border-line bg-elev p-6 transition-[box-shadow,border-color] duration-300 hover:border-line-strong hover:shadow-lift">
               <div className="font-serif text-3xl text-accent-strong dark:text-accent">{s.n}</div>
               <div className="mt-3 font-medium">{s.t}</div>
               <p className="mt-2 text-sm leading-relaxed text-fg-muted">{s.d}</p>
-            </div>
+            </motion.div>
           </Reveal>
         ))}
       </div>
@@ -69,24 +70,34 @@ export function Differentiators() {
   );
 }
 
+const LOOP: [string, string][] = [
+  ["Brief", "One sentence, a photo, a video or a link, plus how many posts and where."],
+  ["Generate", "Two or three candidates per platform, each with a different angle, in your voice."],
+  ["Review", "Approve, edit in place, reject with a note, or just ask again."],
+  ["Learn", "Every decision is stored and shapes the next generation."],
+  ["Publish", "Approved drafts fill your cadence on each platform."],
+  ["Measure", "Metrics explain what worked and feed the next brief."],
+];
 export function LoopDiagram() {
-  const nodes = ["Brief", "Generate", "Review", "Learn", "Publish", "Measure"];
+  const nodes = LOOP;
   return (
     <section className="mx-auto max-w-6xl px-6 pb-20">
       <Reveal>
         <div className="rounded-[var(--radius)] border border-line bg-elev p-8 md:p-12">
           <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6">
-            {nodes.map((n, i) => (
+            {nodes.map(([n, tip], i) => (
               <div key={n} className="flex items-center gap-3 md:gap-6">
-                <motion.div initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="rounded-full border border-line-strong bg-bg px-5 py-2 font-serif text-xl">
-                  {n}
-                </motion.div>
+                <Tooltip label={tip}>
+                  <motion.div initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} whileHover={{ y: -3, scale: 1.04 }} viewport={{ once: true }} transition={{ delay: i * 0.08, type: "spring", stiffness: 300, damping: 22 }} tabIndex={0} className="cursor-pointer rounded-full border border-line-strong bg-bg px-5 py-2 font-serif text-xl transition-colors hover:border-accent hover:bg-accent-soft/40">
+                    {n}
+                  </motion.div>
+                </Tooltip>
                 {i < nodes.length - 1 && <span className="text-fg-subtle">→</span>}
               </div>
             ))}
             <span className="text-fg-subtle">↺</span>
           </div>
-          <p className="mt-6 text-center text-sm text-fg-muted">Measurement feeds the next brief. The loop is the product.</p>
+          <p className="mt-6 text-center text-sm text-fg-muted">Measurement feeds the next brief. The loop is the product. <span className="text-fg-subtle">Hover a step for the short version.</span></p>
         </div>
       </Reveal>
     </section>
