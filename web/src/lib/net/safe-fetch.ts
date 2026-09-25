@@ -71,7 +71,7 @@ export function isOwnStorageUrl(url: string): boolean {
 }
 
 /** Fetch with SSRF guard, manual redirect handling (each hop re-validated), timeout and byte cap. */
-export async function safeFetch(url: string, opts: { maxBytes?: number; timeoutMs?: number; maxRedirects?: number; headers?: Record<string, string>; method?: string; body?: string } = {}): Promise<{ bytes: Buffer; contentType: string; status: number }> {
+export async function safeFetch(url: string, opts: { maxBytes?: number; timeoutMs?: number; maxRedirects?: number; headers?: Record<string, string>; method?: string; body?: string | Uint8Array } = {}): Promise<{ bytes: Buffer; contentType: string; status: number }> {
   const { maxBytes = 15 * 1024 * 1024, timeoutMs = 10_000, maxRedirects = 3, headers = {}, method = "GET", body } = opts;
   let current = url;
   for (let hop = 0; hop <= maxRedirects; hop++) {
