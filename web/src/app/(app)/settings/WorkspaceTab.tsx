@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/Button";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { Card } from "@/components/ui/Card";
 import type { Workspace } from "@/lib/auth/session";
+import { TIMEZONES, timezoneLabel } from "@/lib/schedule/timezones";
 
 export function WorkspaceTab({ workspace }: { workspace: Workspace }) {
   const cadence = workspace.cadence_rule as { type?: string; times?: string[] };
@@ -15,7 +16,11 @@ export function WorkspaceTab({ workspace }: { workspace: Workspace }) {
             <option value="agency">Agency · multiple brands, client approval links</option>
           </Select>
         </Field>
-        <Field label="Timezone" hint="IANA, e.g. Asia/Karachi"><Input name="timezone" defaultValue={workspace.timezone} /></Field>
+        <Field label="Timezone" hint="Posting times and the calendar use this zone.">
+          <Select name="timezone" defaultValue={workspace.timezone}>
+            {TIMEZONES.map((tz) => <option key={tz} value={tz}>{timezoneLabel(tz)}</option>)}
+          </Select>
+        </Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Posting cadence">
             <Select name="cadence_type" defaultValue={cadence.type ?? "weekdays"}>
