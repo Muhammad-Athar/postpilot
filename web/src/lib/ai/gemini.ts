@@ -56,7 +56,8 @@ export async function embed(text: string): Promise<number[]> {
 /** Media references must live in our own storage bucket (uploaded by the user); anything else is refused. */
 export async function describeMedia(url: string): Promise<string> {
   if (!isOwnStorageUrl(url)) throw new Error("Media must be uploaded to Postpilot storage");
-  const { bytes: buf, contentType } = await safeFetch(url, { maxBytes: 20 * 1024 * 1024 });
+  const { bytes: buf, contentType, status } = await safeFetch(url, { maxBytes: 20 * 1024 * 1024 });
+  if (status >= 400) throw new Error(`Media fetch failed with ${status}`);
   const mime = contentType.split(";")[0] || (/\.(mp4|mov)(\?|$)/i.test(url) ? "video/mp4" : "image/jpeg");
   if (!/^(image|video)\//.test(mime)) throw new Error("Unsupported media type");
   const bytes = buf.toString("base64");

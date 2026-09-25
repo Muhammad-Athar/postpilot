@@ -5,7 +5,8 @@ type Ai = { describeMedia: (url: string) => Promise<string>; summariseText: (t: 
 
 /** Fetches a public page through the SSRF guard (2 MB cap) and strips it to text. */
 export async function fetchPageText(url: string): Promise<string> {
-  const { bytes } = await safeFetch(url, { maxBytes: 2 * 1024 * 1024 });
+  const { bytes, status } = await safeFetch(url, { maxBytes: 2 * 1024 * 1024 });
+  if (status >= 400) throw new Error(`Fetch failed with ${status}`);
   const html = bytes.toString("utf8");
   return html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
