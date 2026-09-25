@@ -45,3 +45,14 @@ describe("draftOutputSchema", () => {
     expect(d.hashtags).toEqual([]); expect(d.firstComment).toBeNull(); expect(d.changeNotes).toEqual([]);
   });
 });
+
+describe("hashtag normalisation", () => {
+  it("prefixes, trims, dedupes and normalises first-comment tags", async () => {
+    const { normaliseHashtags, normaliseHashtagsInText } = await import("@/lib/generation/schema");
+    expect(normaliseHashtags(["coffee", "#Coffee", " wfh ", "", "##beans"])).toEqual(["#coffee", "#wfh", "#beans"]);
+    expect(normaliseHashtagsInText("CoffeeSubscription WFHLife")).toBe("#CoffeeSubscription #WFHLife");
+    expect(normaliseHashtagsInText("Great beans, order now!")).toBe("Great beans, order now!");
+    const d = draftOutputSchema.parse({ hook: "h", caption: "c", hashtags: ["tag"], firstComment: "a b", altText: null, mediaPlan: { kind: "none" } });
+    expect(d.hashtags).toEqual(["#tag"]); expect(d.firstComment).toBe("#a #b");
+  });
+});

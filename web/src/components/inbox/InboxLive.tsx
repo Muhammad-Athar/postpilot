@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { PLATFORM_RULES } from "@/lib/platforms/rules";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { DraftCard } from "./DraftCard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -81,9 +81,7 @@ export function InboxLive({ campaigns, initialDrafts, brandId }: { campaigns: Ca
                 <RetryButton campaign={c} />
               </div>
             )}
-            <AnimatePresence initial={false}>
-              {list.map((d) => <DraftCard key={d.id} draft={d} referenceImage={refImage} onAction={onAction} />)}
-            </AnimatePresence>
+            {list.map((d) => <DraftCard key={d.id} draft={d} referenceImage={refImage} onAction={onAction} />)}
             {c.status === "review" && list.length === 0 && <p className="text-sm text-fg-subtle">All candidates handled.</p>}
           </section>
         );
