@@ -1,7 +1,7 @@
 -- Bootstrap race fix: a user owns exactly one workspace, and creation is serialised per user.
 -- (Concurrent first requests used to create several workspaces; maybeSingle() then failed on the
 -- duplicates and every later request created another one.)
-create unique index if not exists workspace_members_one_owner_per_user on workspace_members(user_id) where role = 'owner';
+-- The unique owner-per-user index lives in a later migration, applied once the duplicate workspaces are removed.
 
 create or replace function ensure_workspace(p_user uuid, p_email text) returns uuid
 language plpgsql security definer set search_path = public as $$
