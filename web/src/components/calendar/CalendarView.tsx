@@ -6,17 +6,16 @@ import { addDays, addMonths, format, isSameMonth, parse } from "date-fns";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { monthMatrix, toDateKey } from "@/lib/schedule/slots";
 import type { CalendarEvent } from "@/lib/schedule/events";
-import { PLATFORM_RULES } from "@/lib/platforms/rules";
 import { EventPill } from "./EventPill";
+import { DayEventCard } from "./DayEventCard";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { Tooltip } from "@/components/ui/Tooltip";
 
-type Props = { month: string; events: Record<string, CalendarEvent[]>; today: string; initialSelected: string };
+type Props = { month: string; events: Record<string, CalendarEvent[]>; today: string; initialSelected: string; tz: string; publishEnabled?: boolean };
 type EventMap = Record<string, CalendarEvent[]>;
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-export function CalendarView({ month: initialMonth, events: initialEvents, today, initialSelected }: Props) {
+export function CalendarView({ month: initialMonth, events: initialEvents, today, initialSelected, tz, publishEnabled = false }: Props) {
   const router = useRouter();
   const params = useSearchParams();
   const [month, setMonth] = useState(initialMonth);
@@ -50,6 +49,13 @@ export function CalendarView({ month: initialMonth, events: initialEvents, today
     setMonth(m); syncUrl(m, selected); void load(m);
   }, [monthStart, selected, load, syncUrl]);
   const create = useCallback((day: string) => router.push(`/campaigns/new?date=${day}`), [router]);
+  /** After a slot changes: patch the event in place when told what changed, else drop cached months and reload. */
+  const changed = useCallback((id: string, patch?: Partial<CalendarEvent>) => {
+    if (patch) { setCache((c) => Object.fromEntries(Object.entries(c).map(([m, ev]) => [m, Object.fromEntries(Object.entries(ev).map(([k, list]) => [k, list.map((x) => (x.id === id ? { ...x, ...patch } : x))]))]))); return; }
+    setCache({});
+    fetch(`/api/calendar?month=${month}`).then((r) => r.ok ? r.json() : null).then((j) => { if (j) setCache({ [month]: j.events }); });
+    router.refresh();
+  }, [month, router]);
   const pick = (d: Date) => {
     const key = toDateKey(d);
     if (key === selected) return create(key);           // second click on the selected day
@@ -119,17 +125,7 @@ export function CalendarView({ month: initialMonth, events: initialEvents, today
           <AnimatePresence mode="popLayout" initial={false}>
             {dayEvents.length === 0 ? (
               <motion.p key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="rounded-xl border border-dashed border-line-strong p-4 text-sm text-fg-muted">Nothing scheduled. Press <span className="font-medium text-fg">+</span> to create content for this day.</motion.p>
-            ) : dayEvents.map((e) => (
-              <motion.div key={e.id} layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="rounded-xl border border-line bg-bg p-3">
-                <div className="flex items-center gap-2">
-                  {e.time && <span className="font-mono text-xs text-fg-muted">{e.time}</span>}
-                  {e.platform && <Badge tone="neutral">{PLATFORM_RULES[e.platform]?.label ?? e.platform}</Badge>}
-                  <Badge tone={e.kind === "published" ? "ok" : e.kind === "failed" ? "danger" : e.kind === "review" ? "info" : "accent"}>{e.kind}</Badge>
-                </div>
-                <p className="mt-2 font-serif text-lg leading-snug">{e.title}</p>
-                {(e.kind === "review" || e.kind === "campaign") && <a href="/inbox" className="mt-2 inline-block text-xs text-accent-strong underline-offset-2 hover:underline dark:text-accent">Open inbox →</a>}
-              </motion.div>
-            ))}
+            ) : dayEvents.map((e) => <DayEventCard key={e.id} e={e} day={selected} tz={tz} publishEnabled={publishEnabled} onChanged={(patch) => changed(e.id, patch)} />)}
           </AnimatePresence>
         </div>
       </aside>

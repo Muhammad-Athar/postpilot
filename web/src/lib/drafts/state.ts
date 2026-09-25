@@ -4,7 +4,7 @@ const ALLOWED: Record<DraftStatus, DraftStatus[]> = {
   draft: ["approved", "rejected"],
   approved: ["scheduled"],
   rejected: [],
-  scheduled: ["published", "failed"],
+  scheduled: ["published", "failed", "approved"],
   published: [],
   failed: ["scheduled"],
 };
