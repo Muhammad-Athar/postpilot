@@ -5,11 +5,11 @@ import type { ReactNode } from "react";
 
 export const Menu = D.Root;
 export const MenuTrigger = D.Trigger;
-export function MenuContent({ children, align = "end" }: { children: ReactNode; align?: "start" | "end" }) {
+export function MenuContent({ children, align = "end", side = "bottom" }: { children: ReactNode; align?: "start" | "end"; side?: "top" | "bottom" }) {
   return (
     <D.Portal>
-      <D.Content align={align} sideOffset={8} collisionPadding={12} asChild>
-        <motion.div initial={{ opacity: 0, scale: 0.96, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+      <D.Content align={align} side={side} sideOffset={8} collisionPadding={12} asChild>
+        <motion.div initial={{ opacity: 0, scale: 0.96, y: side === "top" ? 4 : -4 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
           className="z-50 min-w-[220px] rounded-2xl border border-line bg-elev p-1.5 shadow-lift">
           {children}
         </motion.div>

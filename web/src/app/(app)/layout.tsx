@@ -3,6 +3,7 @@ import { BrandSwitcher } from "@/components/BrandSwitcher";
 import { AddBrandButton } from "@/components/AddBrandButton";
 import { AppNav } from "@/components/AppNav";
 import { TopBar } from "@/components/TopBar";
+import { AccountMenu } from "@/components/AccountMenu";
 import { Badge } from "@/components/ui/Badge";
 import { BrandNameInline } from "@/components/BrandNameInline";
 
@@ -28,9 +29,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <BrandNameInline brandId={brand.id} name={brand.name} />
         )}
         <AppNav />
+        <div className="mt-auto border-t border-line pt-3">
+          <AccountMenu name={meta.display_name ?? ""} email={user.email ?? ""} avatarUrl={meta.avatar_url ?? null} />
+        </div>
       </aside>
       <div className="min-w-0">
-        <TopBar name={meta.display_name ?? ""} email={user.email ?? ""} avatarUrl={meta.avatar_url ?? null} brandName={brand.name} />
+        <TopBar brandName={brand.name} />
         <main className="p-5 md:p-8">{children}</main>
       </div>
     </div>
