@@ -11,13 +11,13 @@ export default async function ConnectionsPage() {
   const late = PLATFORMS.filter((p) => PLATFORM_RULES[p].adapter === "late");
   return (
     <div className="space-y-8">
-      <PageTitle sub="Connect the accounts Postpilot should publish to and measure. Bluesky and Mastodon connect right now; the others arrive with publishing.">Connections</PageTitle>
+      <PageTitle sub="Connect the accounts Postpilot should publish to and measure. Bluesky and Mastodon connect directly. X, TikTok, YouTube, LinkedIn, Threads and Pinterest connect through your Zernio workspace. Instagram and Facebook arrive after Meta app review.">Connections</PageTitle>
       <section>
         <Eyebrow>Native</Eyebrow>
         <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{native.map((p) => <PlatformCard key={p} platform={p} connection={byPlatform.get(p)} />)}</div>
       </section>
       <section>
-        <Eyebrow>Via Late</Eyebrow>
+        <Eyebrow>Via Zernio</Eyebrow>
         <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{late.map((p) => <PlatformCard key={p} platform={p} connection={byPlatform.get(p)} />)}</div>
       </section>
     </div>

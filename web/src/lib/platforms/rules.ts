@@ -1,5 +1,7 @@
 export const PLATFORMS = ["instagram", "facebook", "tiktok", "youtube", "linkedin", "x", "threads", "pinterest", "bluesky", "mastodon"] as const;
 export type Platform = (typeof PLATFORMS)[number];
+/** UI label for `PlatformRules.adapter`; the DB/enum value stays `late` (the aggregator rebranded to Zernio). */
+export const ADAPTER_LABEL: Record<"native" | "late", string> = { native: "Native adapter", late: "Via Zernio" };
 
 export interface PlatformRules {
   label: string;
