@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { PlatformPreview } from "./PlatformPreview";
+import { ShareForApproval } from "./ShareForApproval";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Field, Input, Textarea } from "@/components/ui/Field";
@@ -81,6 +82,7 @@ export function DraftCard({ draft, referenceImage, onAction }: { draft: DraftRow
             <Button size="sm" variant="secondary" disabled={locked} onClick={() => setMode("edit")}>Edit</Button>
             <Button size="sm" variant="secondary" disabled={locked} onClick={() => setMode("reject")}>Reject</Button>
             <Button size="sm" variant="ghost" disabled={locked} loading={busy === "regenerate"} onClick={() => run("regenerate")}>↻ Regenerate</Button>
+            {draft.status === "draft" && <ShareForApproval draftId={draft.id} disabled={busy !== null} />}
           </>)}
           {mode === "edit" && (<>
             <Button size="sm" disabled={locked} loading={busy === "edit"} onClick={() => run("edit", { edits: { hook: edits.hook, caption: edits.caption, hashtags: edits.hashtags.split(/\s+/).filter(Boolean), firstComment: edits.firstComment || null, altText: edits.altText || null } })}>Save edits</Button>
