@@ -7,6 +7,8 @@ import { draftOutputSchema, RESPONSE_JSON_SCHEMA } from "@/lib/generation/schema
 import { resolveSettings } from "@/lib/campaigns/settings";
 import * as gemini from "@/lib/ai/gemini";
 import type { Platform } from "@/lib/platforms/rules";
+import { scheduleApprovedDraft } from "@/lib/schedule/schedule";
+import type { CadenceRule } from "@/lib/schedule/slots";
 
 export type DraftRecord = {
   id: string; workspace_id: string; campaign_id: string; brand_id: string; platform: Platform; candidate_index: number; version: number;
@@ -16,7 +18,7 @@ type BrandCtx = { id: string; name: string; voice_profile: string };
 export type Decision = { action: "approve" | "edit" | "reject" | "regenerate"; note?: string; edits?: Editable };
 
 /** Applies a review decision: records the feedback event, moves state, and (for reject/regenerate) produces the next version inline. */
-export async function applyDecision(admin: SupabaseClient, d: DraftRecord, brand: BrandCtx, body: Decision): Promise<{ newDraftId?: string }> {
+export async function applyDecision(admin: SupabaseClient, d: DraftRecord, brand: BrandCtx, body: Decision, workspace?: { timezone: string; cadence_rule: CadenceRule }): Promise<{ newDraftId?: string; scheduledAt?: string }> {
   const before: Editable = { hook: d.hook, caption: d.caption, hashtags: d.hashtags, firstComment: d.first_comment, altText: d.alt_text };
   const snapshot = { hook: d.hook, caption: d.caption };
   const embedding = await gemini.embed(`${d.hook}\n${d.caption}`).catch(() => null);
@@ -56,6 +58,10 @@ export async function applyDecision(admin: SupabaseClient, d: DraftRecord, brand
 
   await admin.from("drafts").update({ status: to }).eq("id", d.id);
   await event(body.action, { note: body.note?.trim() || null });
+  let scheduledAt: string | undefined;
+  if (body.action === "approve" && workspace) {
+    scheduledAt = (await scheduleApprovedDraft(admin, d, workspace)).toISOString();
+  }
   let newDraftId: string | undefined;
   if (replacement) {
     const { data: nd, error } = await admin.from("drafts").insert(replacement.row).select("id").single();
@@ -63,7 +69,7 @@ export async function applyDecision(admin: SupabaseClient, d: DraftRecord, brand
     newDraftId = nd.id;
   }
   await maintainSummary(admin, d);
-  return { newDraftId };
+  return { newDraftId, scheduledAt };
 }
 
 /** Every 10 feedback events per brand, rewrite the preference summary from the latest 10. */
