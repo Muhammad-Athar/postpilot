@@ -18,7 +18,7 @@ export function AccountMenu({ name, email, avatarUrl }: { name: string; email: s
           <ChevronsUpDown size={16} className="shrink-0 text-fg-subtle" />
         </button>
       </MenuTrigger>
-      <MenuContent align="start" side="top">
+      <MenuContent align="end" side="right">
         <MenuLabel>{email}</MenuLabel>
         <MenuItem asChild><Link href="/settings?tab=profile"><UserRound size={16} /> Profile</Link></MenuItem>
         <MenuItem asChild><Link href="/settings"><Settings size={16} /> Settings</Link></MenuItem>

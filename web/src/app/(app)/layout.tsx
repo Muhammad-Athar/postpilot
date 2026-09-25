@@ -13,12 +13,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="relative z-10 min-h-screen md:grid md:grid-cols-[240px_1fr]">
       <aside className="flex flex-col gap-5 border-b border-line bg-elev/70 p-4 backdrop-blur md:sticky md:top-0 md:h-screen md:border-b-0 md:border-r">
-        <div>
+        <div className="flex items-center justify-between">
           <div className="font-serif text-2xl leading-none">Postpilot</div>
-          <div className="mt-1.5 flex items-center gap-2 text-xs text-fg-subtle">
-            <span className="max-w-[130px] truncate">{workspace.name}</span>
-            <Badge tone={workspace.mode === "agency" ? "accent" : "neutral"}>{workspace.mode}</Badge>
-          </div>
+          <Badge tone={workspace.mode === "agency" ? "accent" : "neutral"}>{workspace.mode}</Badge>
         </div>
         {workspace.mode === "agency" ? (
           <div className="space-y-2">
