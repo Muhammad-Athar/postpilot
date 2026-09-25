@@ -17,7 +17,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   return (
     <div>
       <PageTitle sub={`Cadence: ${cadence.type ?? "weekdays"} at ${(cadence.times ?? ["10:00"]).join(", ")} · ${workspace.timezone}. Approved drafts take the next open slot; click a day twice to create content for it.`}>Calendar</PageTitle>
-      <Suspense><CalendarView month={monthKey} events={events} today={today} initialSelected={selected} tz={workspace.timezone} /></Suspense>
+      <Suspense><CalendarView month={monthKey} events={events} today={today} initialSelected={selected} tz={workspace.timezone} publishEnabled /></Suspense>
     </div>
   );
 }
