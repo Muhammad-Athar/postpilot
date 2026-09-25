@@ -13,26 +13,49 @@ import { Badge } from "@/components/ui/Badge";
 import { Tooltip } from "@/components/ui/Tooltip";
 
 type Props = { month: string; events: Record<string, CalendarEvent[]>; today: string; initialSelected: string };
+type EventMap = Record<string, CalendarEvent[]>;
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-export function CalendarView({ month, events, today, initialSelected }: Props) {
+export function CalendarView({ month: initialMonth, events: initialEvents, today, initialSelected }: Props) {
   const router = useRouter();
   const params = useSearchParams();
-  const monthStart = parse(month, "yyyy-MM", new Date());
+  const [month, setMonth] = useState(initialMonth);
+  const [cache, setCache] = useState<Record<string, EventMap>>({ [initialMonth]: initialEvents });
+  const [loading, setLoading] = useState<string | null>(null);
   const [selected, setSelected] = useState(initialSelected);
   const [dir, setDir] = useState(0);
+  const monthStart = useMemo(() => parse(month, "yyyy-MM", new Date()), [month]);
   const rows = useMemo(() => monthMatrix(monthStart), [monthStart]);
   const selectedDate = parse(selected, "yyyy-MM-dd", new Date());
+  // events from every loaded month, so days at the edges of the grid stay populated
+  const events = useMemo(() => Object.assign({}, ...Object.values(cache)) as EventMap, [cache]);
   const dayEvents = events[selected] ?? [];
 
-  const go = useCallback((delta: number) => { setDir(delta); const m = format(addMonths(monthStart, delta), "yyyy-MM"); router.push(`/calendar?month=${m}&date=${selected}`); }, [monthStart, router, selected]);
+  const load = useCallback(async (m: string) => {
+    if (cache[m]) return;
+    setLoading((l) => l ?? m);
+    try {
+      const r = await fetch(`/api/calendar?month=${m}`);
+      if (r.ok) { const j = await r.json(); setCache((c) => ({ ...c, [m]: j.events })); }
+    } finally { setLoading((l) => (l === m ? null : l)); }
+  }, [cache]);
+
+  // prefetch neighbours so prev/next feel instant
+  useEffect(() => { [-1, 1].forEach((d) => { void load(format(addMonths(monthStart, d), "yyyy-MM")); }); }, [monthStart, load]);
+
+  const syncUrl = useCallback((m: string, day: string) => window.history.replaceState(null, "", `/calendar?month=${m}&date=${day}`), []);
+  const go = useCallback((delta: number) => {
+    setDir(delta);
+    const m = format(addMonths(monthStart, delta), "yyyy-MM");
+    setMonth(m); syncUrl(m, selected); void load(m);
+  }, [monthStart, selected, load, syncUrl]);
   const create = useCallback((day: string) => router.push(`/campaigns/new?date=${day}`), [router]);
   const pick = (d: Date) => {
     const key = toDateKey(d);
     if (key === selected) return create(key);           // second click on the selected day
     setSelected(key);
-    if (!isSameMonth(d, monthStart)) router.push(`/calendar?month=${format(d, "yyyy-MM")}&date=${key}`);
-    else { const q = new URLSearchParams(params.toString()); q.set("date", key); window.history.replaceState(null, "", `/calendar?${q}`); }
+    if (!isSameMonth(d, monthStart)) { const m = format(d, "yyyy-MM"); setDir(d < monthStart ? -1 : 1); setMonth(m); void load(m); syncUrl(m, key); }
+    else { const q = new URLSearchParams(params.toString()); q.set("month", month); q.set("date", key); window.history.replaceState(null, "", `/calendar?${q}`); }
   };
 
   useEffect(() => {
@@ -51,11 +74,11 @@ export function CalendarView({ month, events, today, initialSelected }: Props) {
         <header className="flex items-center justify-between border-b border-line px-5 py-4">
           <div className="flex items-center gap-2">
             <Tooltip label="Previous month"><button onClick={() => go(-1)} className="rounded-lg p-1.5 text-fg-muted transition-colors hover:bg-muted hover:text-fg" aria-label="Previous month"><ChevronLeft size={18} /></button></Tooltip>
-            <h2 className="w-44 text-center font-serif text-2xl">{format(monthStart, "MMMM yyyy")}</h2>
+            <h2 className="w-44 text-center font-serif text-2xl">{format(monthStart, "MMMM yyyy")}{loading === month && <span className="ml-2 inline-block h-2 w-2 animate-pulse rounded-full bg-accent align-middle" aria-label="Loading" />}</h2>
             <Tooltip label="Next month"><button onClick={() => go(1)} className="rounded-lg p-1.5 text-fg-muted transition-colors hover:bg-muted hover:text-fg" aria-label="Next month"><ChevronRight size={18} /></button></Tooltip>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="secondary" onClick={() => { setSelected(today); router.push(`/calendar?month=${today.slice(0, 7)}&date=${today}`); }}>Today</Button>
+            <Button size="sm" variant="secondary" onClick={() => { const m = today.slice(0, 7); setDir(m < month ? -1 : 1); setSelected(today); setMonth(m); void load(m); syncUrl(m, today); }}>Today</Button>
             <Tooltip label="Create content for the selected day"><span><Button size="sm" variant="accent" onClick={() => create(selected)}><Plus size={16} /> New</Button></span></Tooltip>
           </div>
         </header>
