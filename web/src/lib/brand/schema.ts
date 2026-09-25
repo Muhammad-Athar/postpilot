@@ -11,5 +11,6 @@ export const brandKitSchema = z.object({
   samplePosts: z.array(z.string()).default([]),
   defaultCta: z.string().optional(),
   hashtagSets: z.array(z.string()).default([]),
+  approverEmail: z.string().email().optional(),
 });
 export type BrandKit = z.infer<typeof brandKitSchema>;

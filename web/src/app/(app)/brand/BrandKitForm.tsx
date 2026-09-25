@@ -72,6 +72,7 @@ export function BrandKitForm({ brandName, kit, bannedWords, voiceProfile, onboar
             <div className="mt-3 space-y-4">
               <Field label="Default CTA"><Input name="defaultCta" defaultValue={kit.defaultCta ?? ""} placeholder="Start your first box" /></Field>
               <Field label="Hashtag sets" hint="one set per line"><Textarea name="hashtagSets" defaultValue={kit.hashtagSets.join("\n")} rows={2} placeholder="#specialtycoffee #wfh #morningritual" /></Field>
+              <Field label="Approver email" hint="Receives approval links when you share a post for sign-off (agency mode)"><Input name="approverEmail" type="email" defaultValue={kit.approverEmail ?? ""} placeholder="client@example.com" /></Field>
             </div>
           </div>
         </Item>

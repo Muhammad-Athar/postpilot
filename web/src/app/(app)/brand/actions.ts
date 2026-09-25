@@ -30,6 +30,7 @@ export async function saveBrand(formData: FormData) {
     samplePosts: lines(formData.get("samplePosts")),
     defaultCta: String(formData.get("defaultCta") ?? "").trim() || undefined,
     hashtagSets: lines(formData.get("hashtagSets")),
+    approverEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(formData.get("approverEmail") ?? "").trim()) ? String(formData.get("approverEmail")).trim() : undefined,
   });
   const bannedWords = list(formData.get("bannedWords")).flatMap((w) => w.split(/\r?\n/)).map((w) => w.trim()).filter(Boolean);
   const name = String(formData.get("name") ?? "").trim() || brand.name;

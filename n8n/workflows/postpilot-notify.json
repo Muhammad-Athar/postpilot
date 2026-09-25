@@ -1,0 +1,73 @@
+{
+  "id": "PostpilotNotify0001",
+  "name": "Postpilot \u00b7 notify",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "PostpilotErrors001",
+    "saveManualExecutions": true
+  },
+  "nodes": [
+    {
+      "id": "n-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "postpilot-notify",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "postpilot-notify",
+        "responseMode": "onReceived",
+        "options": {},
+        "authentication": "headerAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PpHeaderAuth00001",
+          "name": "Postpilot app secret"
+        }
+      }
+    },
+    {
+      "id": "n-email",
+      "name": "Send email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "fromEmail": "={{ $('Webhook').item.json.body.from || 'Postpilot <postpilot@localhost>' }}",
+        "toEmail": "={{ $('Webhook').item.json.body.to }}",
+        "subject": "={{ $('Webhook').item.json.body.subject }}",
+        "emailFormat": "html",
+        "html": "={{ $('Webhook').item.json.body.html }}",
+        "options": {}
+      },
+      "credentials": {
+        "smtp": {
+          "id": "PpSmtp0000000001",
+          "name": "Postpilot SMTP"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
