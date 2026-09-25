@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,7 +20,7 @@ export default function LoginPage() {
     const { error } = mode === "signIn" ? await supabase.auth.signInWithPassword({ email, password }) : await supabase.auth.signUp({ email, password });
     setBusy(null);
     if (error) return setError(error.message);
-    router.replace("/inbox"); router.refresh();
+    router.replace(mode === "signUp" ? "/brand?onboarding=1" : "/inbox"); router.refresh();
   }
 
   return (
@@ -39,12 +38,9 @@ export default function LoginPage() {
       </section>
       <section className="flex items-center justify-center px-6 py-12">
         <motion.form initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} onSubmit={(e) => { e.preventDefault(); go("signIn"); }} className="w-full max-w-sm space-y-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="font-serif text-3xl">Welcome back</h1>
-              <p className="mt-1 text-sm text-fg-muted">Sign in, or create a workspace in one step.</p>
-            </div>
-            <ThemeToggle />
+          <div>
+            <h1 className="font-serif text-3xl">Welcome back</h1>
+            <p className="mt-1 text-sm text-fg-muted">Sign in, or create a workspace in one step.</p>
           </div>
           <Field label="Email"><Input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@brand.com" /></Field>
           <Field label="Password" hint="6+ characters"><Input type="password" required minLength={6} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></Field>

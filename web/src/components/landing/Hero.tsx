@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { Eyebrow } from "@/components/ui/Heading";
@@ -10,7 +11,9 @@ const CARDS = [
   { platform: "TikTok", hook: "POV: your desk smells better than the café.", tone: "playful", status: "Rendering short" },
 ];
 
+const BASE_ROT = [-4, 2, -1];
 export function Hero() {
+  const [active, setActive] = useState<number | null>(null);
   return (
     <section className="relative mx-auto grid max-w-6xl gap-12 px-6 pb-20 pt-16 md:grid-cols-[1.1fr_0.9fr] md:items-center md:pt-24">
       <div>
@@ -36,11 +39,12 @@ export function Hero() {
           <motion.div
             key={c.platform}
             initial={{ opacity: 0, y: 40, rotate: 0 }}
-            animate={{ opacity: 1, y: 0, rotate: i === 0 ? -4 : i === 1 ? 2 : -1 }}
-            transition={{ duration: 0.7, delay: 0.3 + i * 0.12, ease: [0.22, 1, 0.36, 1] }}
-            whileHover={{ y: -6, rotate: 0, zIndex: 10 }}
-            className="absolute left-0 right-0 mx-auto w-[88%] rounded-[var(--radius)] border border-line bg-elev p-5 shadow-lift"
-            style={{ top: `${i * 128}px` }}
+            animate={{ opacity: 1, y: active === i ? -10 : 0, rotate: active === i ? 0 : BASE_ROT[i], scale: active === i ? 1.02 : 1 }}
+            transition={{ opacity: { duration: 0.7, delay: 0.3 + i * 0.12 }, type: "spring", stiffness: 220, damping: 24, mass: 0.8 }}
+            onHoverStart={() => setActive(i)}
+            onHoverEnd={() => setActive(null)}
+            className="absolute left-0 right-0 mx-auto w-[88%] cursor-pointer rounded-[var(--radius)] border border-line bg-elev p-5 shadow-lift will-change-transform"
+            style={{ top: `${i * 128}px`, zIndex: active === i ? 10 : i }}
           >
             <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-fg-subtle">
               <span>{c.platform}</span>
