@@ -13,7 +13,7 @@ const isTransient = (e: unknown) => {
 };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Tries each model in the chain; retries transient errors twice per model with short backoff. */
+/** Tries each model in the chain; retries transient errors twice per model. The free tier is rate-limited per minute, so the pause between attempts is generous. */
 export async function withModelFallback<T>(fn: (model: string) => Promise<T>): Promise<T> {
   let last: unknown;
   for (const model of MODEL_CHAIN) {
@@ -22,7 +22,7 @@ export async function withModelFallback<T>(fn: (model: string) => Promise<T>): P
       catch (e) {
         last = e;
         if (!isTransient(e)) throw e;
-        if (attempt === 0) await sleep(1500);
+        if (attempt === 0) await sleep(4000);
       }
     }
   }
@@ -48,7 +48,7 @@ export async function embed(text: string): Promise<number[]> {
     try {
       const res = await client().models.embedContent({ model: EMBED_MODEL, contents: text, config: { outputDimensionality: 768 } });
       return res.embeddings![0].values!;
-    } catch (e) { if (attempt === 1 || !isTransient(e)) throw e; await sleep(1200); }
+    } catch (e) { if (attempt === 1 || !isTransient(e)) throw e; await sleep(3000); }
   }
   throw new Error("unreachable");
 }

@@ -25,7 +25,7 @@ export async function listMonthEvents(admin: SupabaseClient, brandId: string, mo
   const push = (d: Date, e: CalendarEvent) => { const k = toDateKey(toZonedTime(d, tz)); (out[k] ??= []).push(e); };
   const hhmm = (d: Date) => { const z = toZonedTime(d, tz); return `${String(z.getHours()).padStart(2, "0")}:${String(z.getMinutes()).padStart(2, "0")}`; };
 
-  const { data: slots } = await admin.from("schedule_slots").select("id, platform, scheduled_at, draft_id, status, drafts(id, hook, status, campaign_id, permalink, publish_error)").eq("brand_id", brandId).gte("scheduled_at", from).lt("scheduled_at", to);
+  const { data: slots } = await admin.from("schedule_slots").select("id, platform, scheduled_at, draft_id, status, drafts!schedule_slots_draft_id_fkey(id, hook, status, campaign_id, permalink, publish_error)").eq("brand_id", brandId).gte("scheduled_at", from).lt("scheduled_at", to);
   for (const s of slots ?? []) {
     const d = (Array.isArray(s.drafts) ? s.drafts[0] : s.drafts) as { id: string; hook: string; status: string; campaign_id: string; permalink: string | null; publish_error: string | null } | null;
     const at = new Date(s.scheduled_at);
