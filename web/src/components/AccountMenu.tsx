@@ -1,11 +1,14 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ChevronsUpDown, LogOut, Settings, UserRound, Link2, SunMoon } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Menu, MenuTrigger, MenuContent, MenuItem, MenuLabel, MenuSeparator } from "@/components/ui/DropdownMenu";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 export function AccountMenu({ name, email, avatarUrl }: { name: string; email: string; avatarUrl: string | null }) {
+  const router = useRouter();
+  const signOut = () => { void fetch("/api/auth/signout", { method: "post" }).finally(() => { router.replace("/login"); router.refresh(); }); };
   return (
     <Menu>
       <MenuTrigger asChild>
@@ -26,9 +29,10 @@ export function AccountMenu({ name, email, avatarUrl }: { name: string; email: s
         <MenuSeparator />
         <div className="flex items-center justify-between px-3 py-2 text-sm"><span className="flex items-center gap-2.5"><SunMoon size={16} className="text-fg-subtle" /> Theme</span><ThemeToggle /></div>
         <MenuSeparator />
-        <form action="/api/auth/signout" method="post">
-          <MenuItem asChild danger><button type="submit" className="w-full"><LogOut size={16} /> Sign out</button></MenuItem>
-        </form>
+        {/* Radix closes the menu on select before a native form submit can fire, so post explicitly. */}
+        <MenuItem danger onSelect={signOut}>
+          <LogOut size={16} /> Sign out
+        </MenuItem>
       </MenuContent>
     </Menu>
   );
