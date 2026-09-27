@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { PLATFORM_RULES } from "@/lib/platforms/rules";
 import { motion } from "framer-motion";
 import { DraftCard } from "./DraftCard";
@@ -24,15 +25,25 @@ export function InboxLive({ campaigns, initialDrafts, brandId }: { campaigns: Ca
 
   useEffect(() => {
     const sb = createBrowserSupabase();
-    const ch = sb.channel(`drafts-${brandId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "drafts", filter: `brand_id=eq.${brandId}` }, (p) => {
-        if (p.eventType === "DELETE") { setLive((l) => ({ ...l, [(p.old as { id: string }).id]: null })); return; }
-        const row = p.new as DraftRow;
-        setLive((l) => ({ ...l, [row.id]: row }));
-        if (p.eventType === "INSERT") router.refresh();
-      })
-      .subscribe();
-    return () => { sb.removeChannel(ch); };
+    let ch: RealtimeChannel | null = null;
+    let cancelled = false;
+    (async () => {
+      // The channel joins with whatever token the socket holds at that instant. Right after hydration the
+      // session is still being read from the cookie, so an immediate join is anonymous and RLS drops every event.
+      const { data: { session } } = await sb.auth.getSession();
+      if (cancelled) return;
+      await sb.realtime.setAuth(session?.access_token ?? null);
+      if (cancelled) return;
+      ch = sb.channel(`drafts-${brandId}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "drafts", filter: `brand_id=eq.${brandId}` }, (p) => {
+          if (p.eventType === "DELETE") { setLive((l) => ({ ...l, [(p.old as { id: string }).id]: null })); return; }
+          const row = p.new as DraftRow;
+          setLive((l) => ({ ...l, [row.id]: row }));
+          if (p.eventType === "INSERT") router.refresh();
+        })
+        .subscribe();
+    })();
+    return () => { cancelled = true; if (ch) sb.removeChannel(ch); };
   }, [brandId, router]);
 
   async function onAction(id: string, action: DraftAction, payload?: { note?: string; edits?: Record<string, unknown> }) {
